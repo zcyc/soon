@@ -727,26 +727,26 @@ export default function ScreenRecorder() {
   useEffect(() => {
     // 只在组件完全挂载后才处理摄像头预览
     if (!isMounted) {
-      console.log('组件还未完全挂载，跳过摄像头预览');
       return;
     }
     
-    console.log('摄像头状态变化:', { includeCamera, isRecording: recordingState.isRecording, isMounted });
-    
+    // 只有在开启摄像头时才处理预览
     if (includeCamera) {
       // 开启摄像头时启动预览（录制时也保持开启）
       if (!cameraPreviewStream) {
         console.log('启动摄像头预览...');
         startCameraPreview();
       } else if (recordingState.isRecording) {
-        console.log('录制中，保持摄像头画中画开启...');
+        // 录制中，保持摄像头画中画开启
       }
     } else {
-      // 关闭摄像头时停止预览
-      console.log('停止摄像头预览...');
-      stopCameraPreview();
+      // 关闭摄像头时，只有在已有预览流的情况下才停止
+      if (cameraPreviewStream) {
+        console.log('停止摄像头预览...');
+        stopCameraPreview();
+      }
     }
-  }, [includeCamera, recordingState.isRecording, isMounted]);
+  }, [includeCamera, recordingState.isRecording, isMounted, cameraPreviewStream]);
 
   // 自动关闭摄像头当选择不支持的录制源时
   useEffect(() => {
@@ -764,40 +764,44 @@ export default function ScreenRecorder() {
     
     // 不需要从 localStorage 恢复状态，因为不再存储 Blob 数据
     // 登录不会刷新页面，所有状态都在内存中保持
-    console.log('组件初始化，使用默认状态');
     
     return () => {
       setIsMounted(false);
-      stopCameraPreview();
+      // 只有在有预览流时才停止
+      if (cameraPreviewStream) {
+        stopCameraPreview();
+      }
     };
   }, []);
 
-  // 状态变化监控 - 用于调试Firefox问题
+  // 状态变化监控 - 用于调试Firefox问题（仅在开发环境）
   useEffect(() => {
-    console.log('=== RecordingState 变化 ===', {
-      isRecording: recordingState.isRecording,
-      isPaused: recordingState.isPaused,
-      hasBlob: !!recordingState.recordedBlob,
-      blobSize: recordingState.recordedBlob?.size || 0,
-      duration: recordingState.duration,
-      timestamp: new Date().toISOString()
-    });
-    
-    if (recordingState.recordedBlob && !recordingState.isRecording) {
-      console.log('🎆 录制完成！预览页应该显示。');
-      console.log('Blob 详情:', {
-        size: recordingState.recordedBlob.size,
-        type: recordingState.recordedBlob.type,
-        sizeInKB: Math.round(recordingState.recordedBlob.size / 1024)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('=== RecordingState 变化 ===', {
+        isRecording: recordingState.isRecording,
+        isPaused: recordingState.isPaused,
+        hasBlob: !!recordingState.recordedBlob,
+        blobSize: recordingState.recordedBlob?.size || 0,
+        duration: recordingState.duration,
+        timestamp: new Date().toISOString()
       });
       
-      // 检查预览页显示条件
-      const shouldShowPreview = recordingState.recordedBlob && !uploadedVideo;
-      console.log('预览页显示条件:', {
-        hasBlob: !!recordingState.recordedBlob,
-        noUploadedVideo: !uploadedVideo,
-        shouldShow: shouldShowPreview
-      });
+      if (recordingState.recordedBlob && !recordingState.isRecording) {
+        console.log('🎆 录制完成！预览页应该显示。');
+        console.log('Blob 详情:', {
+          size: recordingState.recordedBlob.size,
+          type: recordingState.recordedBlob.type,
+          sizeInKB: Math.round(recordingState.recordedBlob.size / 1024)
+        });
+        
+        // 检查预览页显示条件
+        const shouldShowPreview = recordingState.recordedBlob && !uploadedVideo;
+        console.log('预览页显示条件:', {
+          hasBlob: !!recordingState.recordedBlob,
+          noUploadedVideo: !uploadedVideo,
+          shouldShow: shouldShowPreview
+        });
+      }
     }
   }, [recordingState, uploadedVideo]);
 
