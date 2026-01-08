@@ -27,7 +27,7 @@ function getLocale(acceptLanguage: string | null): Locale {
   return 'en'; // Default fallback
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
   
   // Handle OAuth callback route
@@ -68,8 +68,3 @@ export async function middleware(request: NextRequest) {
   
   return response;
 }
-
-export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
-  runtime: 'nodejs'
-};

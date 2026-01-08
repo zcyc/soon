@@ -47,7 +47,7 @@ const signInSchema = z.object({
 export async function signInAction(prevState: ActionState, formData: FormData) {
   const result = signInSchema.safeParse(Object.fromEntries(formData));
   if (!result.success) {
-    return { error: result.error.errors[0].message };
+    return { error: result.error.issues[0].message };
   }
 
   const { email, password } = result.data;
@@ -80,7 +80,7 @@ const signUpSchema = z.object({
 export async function signUpAction(prevState: ActionState, formData: FormData) {
   const result = signUpSchema.safeParse(Object.fromEntries(formData));
   if (!result.success) {
-    return { error: result.error.errors[0].message };
+    return { error: result.error.issues[0].message };
   }
 
   const { email, password, name } = result.data;
@@ -125,7 +125,7 @@ const updatePasswordSchema = z.object({
 export async function updatePasswordAction(prevState: ActionState, formData: FormData) {
   const result = updatePasswordSchema.safeParse(Object.fromEntries(formData));
   if (!result.success) {
-    return { error: result.error.errors[0].message };
+    return { error: result.error.issues[0].message };
   }
 
   const { currentPassword, newPassword, confirmPassword } = result.data;

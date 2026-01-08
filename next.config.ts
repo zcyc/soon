@@ -1,10 +1,8 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  cacheComponents: true, // 替代 experimental.ppr
   experimental: {
-    ppr: true,
-    clientSegmentCache: true,
-    nodeMiddleware: true,
     serverActions: {
       bodySizeLimit: '1000mb', // 增加 Server Actions 的请求体大小限制到 1000MB
     },
