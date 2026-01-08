@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Check, Languages, Moon, Sun, Clock } from 'lucide-react';
+import { Check, Languages, Moon, Sun, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
 import {
@@ -39,14 +39,14 @@ export default function ThemeControls() {
   if (!mounted) {
     return (
       <div className="flex items-center space-x-2">
-        {/* Theme Mode Toggle Placeholder - show clock as auto default */}
+        {/* Theme Mode Toggle Placeholder - show monitor as auto default */}
         <Button
           variant="outline"
           size="sm"
           className="rounded-full p-2 h-9 w-9 pointer-events-none"
           disabled
         >
-          <Clock className="h-4 w-4" />
+          <Monitor className="h-4 w-4" />
         </Button>
 
         {/* Language Toggle Placeholder */}
@@ -78,14 +78,14 @@ export default function ThemeControls() {
         className="rounded-full p-2 h-9 w-9"
         title={
           mode === 'auto' 
-            ? 'Auto mode (based on time) - Click to switch to light mode' 
+            ? 'Auto mode (based on device theme) - Click to switch to light mode' 
             : mode === 'light' 
             ? 'Light mode - Click to switch to dark mode'
             : 'Dark mode - Click to switch to auto mode'
         }
       >
         {mode === 'auto' ? (
-          <Clock className="h-4 w-4" />
+          <Monitor className="h-4 w-4" />
         ) : mode === 'light' ? (
           <Moon className="h-4 w-4" />
         ) : (

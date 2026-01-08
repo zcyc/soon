@@ -49,7 +49,7 @@ export async function GET(request: Request) {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSetArray) {
+        setAll(cookiesToSetArray: { name: any; value: any; options: any; }[]) {
           cookiesToSetArray.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);
             cookiesToSet.push({ name, value, options });

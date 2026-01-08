@@ -30,11 +30,15 @@ interface ThemeProviderProps {
   children: React.ReactNode;
 }
 
-// 获取基于时间的主题模式
-function getTimeBasedTheme(): 'light' | 'dark' {
-  const hour = new Date().getHours();
-  // 6:00 - 18:00 为浅色模式，18:00 - 6:00 为深色模式
-  return (hour >= 6 && hour < 18) ? 'light' : 'dark';
+// 获取基于设备主题的模式
+function getDeviceTheme(): 'light' | 'dark' {
+  if (typeof window === 'undefined') {
+    // 服务器端回退到浅色模式
+    return 'light';
+  }
+  // 检测设备首选色彩方案
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return prefersDark ? 'dark' : 'light';
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
@@ -53,8 +57,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         return 'dark';
       }
     }
-    // Fallback to time-based theme
-    return getTimeBasedTheme();
+    // Fallback to device theme
+    return getDeviceTheme();
   };
 
   const [mode, setMode] = useState<ThemeMode>('auto');
@@ -71,9 +75,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       localStorage.removeItem('theme-color');
     }
     
-    // Set client timezone and preferences in cookies for server-side detection
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    document.cookie = `soon-client-timezone=${timezone}; path=/; max-age=31536000; samesite=strict`;
+    // Set theme preferences in cookies for server-side detection
     document.cookie = `soon-theme-mode=${savedMode}; path=/; max-age=31536000; samesite=strict`;
     
     setMounted(true);
@@ -88,7 +90,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     // 计算实际应该应用的模式
     let effectiveMode: 'light' | 'dark';
     if (mode === 'auto') {
-      effectiveMode = getTimeBasedTheme();
+      effectiveMode = getDeviceTheme();
     } else {
       effectiveMode = mode as 'light' | 'dark';
     }
@@ -132,24 +134,32 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
   }, [mode, mounted, actualMode]);
 
-  // 自动更新基于时间的主题（仅在 auto 模式下）
+  // 监听设备主题变化（仅在 auto 模式下）
   useEffect(() => {
     if (!mounted || mode !== 'auto') return;
     
-    const updateTimeBasedTheme = () => {
-      const newActualMode = getTimeBasedTheme();
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const handleThemeChange = (e?: MediaQueryListEvent) => {
+      const matches = e ? e.matches : mediaQuery.matches;
+      const newActualMode = matches ? 'dark' : 'light';
       if (newActualMode !== actualMode) {
         setActualMode(newActualMode);
       }
     };
     
     // 立即检查一次，确保与服务器端保持同步
-    updateTimeBasedTheme();
+    handleThemeChange();
     
-    // 每分钟检查一次时间变化
-    const interval = setInterval(updateTimeBasedTheme, 60000);
-    
-    return () => clearInterval(interval);
+    // 监听设备主题变化
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleThemeChange);
+      return () => mediaQuery.removeEventListener('change', handleThemeChange);
+    } else {
+      // 兼容旧版浏览器
+      mediaQuery.addListener(handleThemeChange);
+      return () => mediaQuery.removeListener(handleThemeChange);
+    }
   }, [mounted, mode, actualMode]);
   
   // Mark hydration complete after everything is ready
