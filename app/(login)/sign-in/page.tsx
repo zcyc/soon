@@ -1,7 +1,7 @@
-import { Login } from '../appwrite-login';
+import { LoginForm } from '../login-form';
 
 export const dynamic = 'force-dynamic';
 
 export default function SignInPage() {
-  return <Login mode="signin" />;
+  return <LoginForm mode="signin" />;
 }

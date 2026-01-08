@@ -25,7 +25,7 @@ export default function HomePage() {
       // 检测登录状态变化
       if (!previousUser && user) {
         console.log('检测到用户登录成功:', {
-          userId: user.$id,
+          userId: user.id,
           userName: user.name,
           userEmail: user.email
         });

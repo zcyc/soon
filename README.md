@@ -26,7 +26,7 @@
 - **Responsive Player**: Optimized video display across all devices
 
 ### User Experience
-- **Authentication System**: Secure user registration and login with Appwrite
+- **Authentication System**: Secure user registration and login with Supabase
 - **Multi-language Support**: Built-in internationalization (English/Chinese)
 - **Theme Support**: Light and dark mode with customizable themes
 - **Responsive Design**: Mobile-first design that works on all devices
@@ -36,7 +36,7 @@
 
 - **Framework**: [Next.js 15](https://nextjs.org/) with App Router and Turbopack
 - **UI Library**: [shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/)
-- **Backend Services**: [Appwrite](https://appwrite.io/) for authentication, database, and file storage
+- **Backend Services**: [Supabase](https://supabase.com/) for authentication, database, and file storage
 - **Recording API**: Web APIs (MediaRecorder, Screen Capture, getUserMedia)
 - **Styling**: Tailwind CSS 4.0 with CSS variables and theme system
 - **TypeScript**: Full type safety throughout the application
@@ -44,139 +44,157 @@
 
 ## 🏗️ Architecture Overview
 
-SOON uses Appwrite as the primary backend service:
-- **Appwrite**: Authentication, database operations, video storage, metadata management
+SOON uses Supabase as the primary backend service:
+- **Supabase**: Authentication, database operations, video storage, metadata management
 - **Next.js**: Frontend and API routes
 - **Client-side APIs**: Web recording APIs for media capture
 
-## 🚀 Complete Setup Guide
+## 🚀 Quick Start
 
-### 📋 Prerequisites
-
-Before starting, ensure you have:
+### Prerequisites
 
 - **Node.js 18+** installed
-- **Appwrite project** created and accessible
+- **Supabase project** created and accessible
 - **Git** for version control
 
-### ☁️ Step 1: Appwrite Setup
+### Step 1: Supabase Setup
 
-#### 1. Create Appwrite Project
+#### 1. Create Supabase Project
 
-1. **Access Appwrite Console**
-   - Visit: https://cloud.appwrite.io (or your self-hosted instance)
-   - Create an account or sign in
-   - Click "Create Project"
-   - Project Name: `SOON Screen Recorder`
-   - Project ID: `soon`
+1. Visit [Supabase Dashboard](https://supabase.com)
+2. Create an account or sign in
+3. Click "New Project"
+4. Project Name: `SOON Screen Recorder`
+5. Choose a strong database password
+6. Select a region close to your users
 
 #### 2. Configure Authentication
 
-1. **Navigate to Auth > Settings**
-2. **Enable Auth Methods**:
-   - ✅ Email/Password
-   - ✅ Session Limit: 10
-   - ✅ Password History: 5
-3. **Security Settings**:
-   - Session Length: 1 year
-   - Password Dictionary: Enable
+1. Navigate to **Authentication > Providers**
+2. Enable Auth Methods:
+   - ✅ Email (enabled by default)
+   - ✅ GitHub (optional, for OAuth)
+   - ✅ Google (optional, for OAuth)
+3. Configure OAuth Providers (if needed):
+   - Add OAuth credentials from GitHub/Google
+   - Set redirect URLs: `https://your-project.supabase.co/auth/v1/callback`
 
-#### 3. Create Database Collections
+#### 3. Create Database Tables
 
-##### 🎬 Videos Collection
+In Supabase SQL Editor, execute the following SQL:
 
-1. **Create Collection**
-   - Navigate to **Databases**
-   - Click "Create Database"
-   - Database ID: `soon`
-   - Database Name: `SOON Database`
+```sql
+-- Create videos table
+CREATE TABLE videos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  title TEXT NOT NULL,
+  file_id TEXT NOT NULL,
+  quality TEXT,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_name TEXT NOT NULL,
+  duration NUMERIC DEFAULT 0,
+  views INTEGER DEFAULT 0,
+  is_public BOOLEAN DEFAULT false,
+  is_publish BOOLEAN DEFAULT false,
+  thumbnail_url TEXT,
+  subtitle_file_id TEXT
+);
 
-2. **Create Videos Collection**
-   - Collection ID: `videos`
-   - Collection Name: `Videos`
+-- Create reactions table
+CREATE TABLE reactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  video_id UUID NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_name TEXT NOT NULL,
+  emoji TEXT NOT NULL,
+  UNIQUE(video_id, user_id, emoji)
+);
 
-3. **Add Attributes**:
-   
-   **String Attributes:**
-   ```
-   • title - Size: 255, Required: ✅
-   • fileId - Size: 255, Required: ✅
-   • userId - Size: 255, Required: ✅
-   • userName - Size: 255, Required: ✅
-   • quality - Size: 10, Required: ✅
-   • thumbnailUrl - Size: 500, Required: ❌
-   • subtitleFileId - Size: 255, Required: ❌
-   ```
-   
-   **Integer Attributes:**
-   ```
-   • duration - Default: 0, Required: ✅
-   • views - Default: 0, Required: ✅
-   ```
-   
-   **Boolean Attributes:**
-   ```
-   • isPublic - Default: false, Required: ✅
-   ```
+-- Create activity_logs table
+CREATE TABLE activity_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  ip_address TEXT,
+  metadata TEXT,
+  user_name TEXT
+);
 
-##### 👥 Reactions Collection
+-- Create indexes
+CREATE INDEX idx_videos_user_id ON videos(user_id);
+CREATE INDEX idx_videos_is_public ON videos(is_public);
+CREATE INDEX idx_videos_is_publish ON videos(is_publish);
+CREATE INDEX idx_reactions_video_id ON reactions(video_id);
+CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id);
+```
 
-1. **Create Collection**
-   - Collection ID: `reactions`  
-   - Collection Name: `Video Reactions`
+#### 4. Row Level Security (RLS) - Optional
 
-2. **Add Attributes**:
-   
-   **String Attributes (All Required):**
-   ```
-   • videoId - Size: 255
-   • userId - Size: 255  
-   • userName - Size: 255
-   • emoji - Size: 10
-   ```
+**Note**: Since this project uses Server Actions with Secret Key for all database operations, **RLS is optional**. All permission checks are done in Server Actions.
 
-#### 4. Configure Permissions 🔐
+If you want to add RLS for additional security in production:
 
-**Critical Step** - For both collections:
+```sql
+-- Enable RLS
+ALTER TABLE videos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 
-1. **Videos Collection**:
-   - Click `videos` → `Settings` → `Permissions`
-   - **Read**: `users`, `any` (for public videos)
-   - **Create**: `users`
-   - **Update**: `users`
-   - **Delete**: `users`
+-- Videos policies
+CREATE POLICY "Users can view public videos" ON videos
+  FOR SELECT USING (is_public = true AND is_publish = true);
 
-2. **Reactions Collection**:
-   - Click `reactions` → `Settings` → `Permissions`
-   - **Read**: `any`
-   - **Create**: `users`
-   - **Update**: `users`
-   - **Delete**: `users`
+CREATE POLICY "Users can view their own videos" ON videos
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own videos" ON videos
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own videos" ON videos
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own videos" ON videos
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Reactions policies
+CREATE POLICY "Anyone can view reactions" ON reactions
+  FOR SELECT USING (true);
+
+CREATE POLICY "Authenticated users can add reactions" ON reactions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own reactions" ON reactions
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Activity logs policies
+CREATE POLICY "Users can insert their own activity logs" ON activity_logs
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+```
 
 #### 5. Create Storage Bucket
 
-1. **Navigate to Storage**
-2. **Create Bucket**:
-   - Bucket ID: `videos`
-   - Bucket Name: `Video Storage`
-   - File Size Limit: 1000MB (or your preference)
-   - Allowed Extensions: `webm,mp4,mov,avi`
-
-3. **Configure Bucket Permissions**:
-   - **Read**: `any` (for public access)
-   - **Create**: `users`
-   - **Update**: `users`
-   - **Delete**: `users`
+1. Navigate to **Storage** in Supabase Dashboard
+2. Click "New bucket"
+3. Bucket Name: `videos`
+4. Set as Public (for public video access)
+5. File size limit: 1000MB (or your preference)
+6. Allowed MIME types: `video/webm,video/mp4,video/quicktime,video/x-msvideo`
 
 #### 6. Get API Keys
 
-1. **Navigate to Overview**
-2. **Copy Project Details**:
-   - Endpoint URL
-   - Project ID
-   - API Key (for server-side operations)
+1. Navigate to **Project Settings > API**
+2. Copy the following:
+   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
+   - **Publishable key** → `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - **Secret key** → `SUPABASE_SECRET_KEY` (⚠️ Keep secret, server-side only!)
 
-### 📦 Step 2: Application Installation
+### Step 2: Application Installation
 
 1. **Clone the repository**
    ```bash
@@ -186,24 +204,19 @@ Before starting, ensure you have:
    ```
 
 2. **Environment Configuration**
-   
+
    Create a `.env.local` file in the root directory:
    ```env
-   # Appwrite Configuration
-   NEXT_PUBLIC_APPWRITE_ENDPOINT="https://cloud.appwrite.io/v1"
-   NEXT_PUBLIC_APPWRITE_PROJECT_ID="soon"
-   NEXT_PUBLIC_APPWRITE_DATABASE_ID="soon"
-   NEXT_PUBLIC_APPWRITE_BUCKET_ID="videos"
+   # Supabase Configuration
+   NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="your-publishable-key"
+   SUPABASE_SECRET_KEY="your-secret-key"
    
-   # Collection IDs
-   NEXT_PUBLIC_APPWRITE_COLLECTION_VIDEO_ID="videos"
-   NEXT_PUBLIC_APPWRITE_COLLECTION_VIDEO_REACTIONS_ID="reactions"
+   # Storage Bucket
+   NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET="videos"
    
-   # Server-side API Key (DO NOT expose to client-side)
-   APPWRITE_API_KEY="your_server_api_key"
-   
-   # Optional: Analytics & Monitoring
-   NEXT_PUBLIC_ANALYTICS_ID="your_analytics_id"
+   # Base URL
+   NEXT_PUBLIC_BASE_URL="http://localhost:3000"
    ```
 
 3. **Start Development Server**
@@ -212,35 +225,6 @@ Before starting, ensure you have:
    ```
    
    Open [http://localhost:3000](http://localhost:3000) to see the application.
-
-### 🔧 Troubleshooting
-
-#### Common Issues
-
-1. **Appwrite 401 Unauthorized**
-   - Verify Appwrite endpoint URL
-   - Check project ID and API key
-   - Ensure permissions are set correctly
-
-2. **Video Upload Fails**
-   - Check bucket permissions
-   - Verify file size limits
-   - Ensure allowed file extensions
-
-3. **Recording Not Working**
-   - Check browser permissions for camera/microphone
-   - Test in Chrome/Edge for best compatibility
-   - Ensure HTTPS for production deployment
-
-#### Environment Variables Checklist
-
-Ensure these variables are properly set:
-- ✅ `NEXT_PUBLIC_APPWRITE_ENDPOINT` - Appwrite endpoint
-- ✅ `NEXT_PUBLIC_APPWRITE_STORAGE_ENDPOINT` - Appwrite storage endpoint (for file URLs)
-- ✅ `NEXT_PUBLIC_APPWRITE_PROJECT_ID` - Your project ID
-- ✅ `NEXT_PUBLIC_APPWRITE_DATABASE_ID` - Database ID
-- ✅ `NEXT_PUBLIC_APPWRITE_BUCKET_ID` - Storage bucket ID
-- ✅ `APPWRITE_API_KEY` - Server-side API key
 
 ## 📝 Usage
 
@@ -265,6 +249,104 @@ Ensure these variables are properly set:
 - **Reactions**: Add emoji reactions to videos you watch
 - **Responsive Viewing**: Videos automatically adapt to container sizes
 
+## 🧪 Testing
+
+### Basic Functionality Tests
+
+1. **Homepage Loading**
+   - [ ] Visit http://localhost:3000
+   - [ ] Page loads without errors
+
+2. **User Registration**
+   - [ ] Visit `/sign-up`
+   - [ ] Fill form and register
+   - [ ] Auto-login after registration
+
+3. **User Login**
+   - [ ] Visit `/sign-in`
+   - [ ] Login with registered account
+   - [ ] Redirect after successful login
+
+4. **Video Upload**
+   - [ ] Login and visit `/dashboard`
+   - [ ] Record or upload video
+   - [ ] Video successfully uploaded to Supabase Storage
+
+5. **Video Management**
+   - [ ] View video list in Dashboard
+   - [ ] Play videos
+   - [ ] Delete videos
+   - [ ] Toggle privacy settings
+   - [ ] Toggle publish status
+
+6. **Public Features**
+   - [ ] Visit `/discover` to see public videos
+   - [ ] Visit `/share/[videoId]` for video sharing
+   - [ ] Add reactions to videos
+
+### Common Issues & Troubleshooting
+
+#### Environment Variables Not Set
+
+**Error**: `SUPABASE_SECRET_KEY is required for admin operations`
+
+**Solution**:
+1. Check if `.env.local` file exists
+2. Verify all required environment variables are set
+3. Ensure you're using Publishable key and Secret key (not legacy keys)
+4. Restart development server
+
+#### Database Tables Don't Exist
+
+**Error**: `relation "videos" does not exist`
+
+**Solution**:
+1. Execute the SQL statements in Supabase SQL Editor
+2. Verify tables were created successfully
+
+#### Storage Bucket Not Found
+
+**Error**: `Bucket not found`
+
+**Solution**:
+1. Create storage bucket in Supabase Dashboard > Storage
+2. Ensure bucket name matches `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET`
+
+#### OAuth Callback Failed
+
+**Error**: `OAuth callback failed`
+
+**Solution**:
+1. Check Supabase Dashboard > Authentication > URL Configuration
+2. Verify callback URL is correctly configured
+3. Check OAuth provider (GitHub/Google) callback URL settings
+
+## 🔒 Security
+
+### Server Actions & Row Level Security
+
+This project uses **Server Actions** for all database operations with **Secret Key**, which means:
+
+- ✅ All database operations are executed server-side
+- ✅ Permission validation is done in Server Actions
+- ✅ RLS is optional (but recommended for production)
+
+### Security Best Practices
+
+1. **Secret Key Security**
+   - **Must** only be used server-side
+   - **Never** expose to client (browser)
+   - Store in environment variables, never commit to repository
+
+2. **Permission Validation**
+   - Verify user permissions in each Server Action
+   - Example: Check if user owns the resource before modifying
+
+3. **Production Recommendations**
+   - Use RLS as an additional security layer
+   - Implement defense in depth strategy
+   - Regular security audits
+
 ## 🎨 Theming
 
 The application includes a comprehensive theming system supporting light and dark modes. When developing:
@@ -281,7 +363,6 @@ The application includes a comprehensive theming system supporting light and dar
 │   ├── (login)/           # Authentication pages
 │   ├── dashboard/         # Main recording interface
 │   ├── discover/          # Public video gallery
-│   ├── devices/           # Device management
 │   ├── share/[videoId]/   # Public video sharing
 │   └── api/               # API routes
 ├── components/            # Reusable UI components
@@ -293,8 +374,9 @@ The application includes a comprehensive theming system supporting light and dar
 ├── lib/                  # Utility libraries
 │   ├── auth/            # Authentication services
 │   ├── services/        # Business logic services
-│   ├── database.ts       # Appwrite database operations
-│   ├── appwrite.ts      # Appwrite configuration
+│   ├── database.ts       # Database type definitions
+│   ├── supabase.ts      # Supabase client configuration
+│   ├── supabase-server.ts # Supabase server configuration
 │   └── config.ts        # App configuration
 └── public/              # Static assets
 ```
@@ -332,4 +414,4 @@ For support and questions:
 
 ---
 
-Built with ❤️ using Next.js and Appwrite
+Built with ❤️ using Next.js and Supabase

@@ -1,118 +1,125 @@
-import { createAdminClient } from "@/lib/appwrite-server";
 import { registrationConfig } from "@/lib/config";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { activityService, ActivityType } from "@/lib/services/activity-service";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
+import { createServerClient } from '@supabase/ssr';
+import { config } from '@/lib/supabase-server';
 
 /**
  * OAuth 回调处理
- * 根据 Appwrite 官方文档实现
+ * Supabase OAuth 使用 code 参数进行认证
  */
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
-    const secret = url.searchParams.get("secret");
+    const code = url.searchParams.get("code");
+    const error = url.searchParams.get("error");
 
     console.log('OAuth callback received:', {
-      userId: userId ? 'present' : 'missing',
-      secret: secret ? 'present' : 'missing',
+      hasCode: !!code,
+      error: error || 'none',
       url: url.toString()
     });
 
+    // 获取正确的 origin（使用请求的 origin，自动包含正确的协议）
+    const redirectOrigin = url.origin;
+
+    // 检查错误
+    if (error) {
+      console.error('OAuth callback error:', error);
+      return NextResponse.redirect(`${redirectOrigin}/oauth-complete?error=oauth_failed`);
+    }
+
     // 检查必需参数
-    if (!userId || !secret) {
-      console.error('OAuth callback missing parameters:', { userId: !!userId, secret: !!secret });
-      const headersList = await headers();
-      const redirectOrigin = headersList.get('host') 
-        ? `https://${headersList.get('host')}` 
-        : url.origin;
+    if (!code) {
+      console.error('OAuth callback missing code parameter');
       return NextResponse.redirect(`${redirectOrigin}/sign-in?error=oauth_incomplete`);
     }
 
-    // 使用 Admin Client 创建会话
-    const { account, users } = await createAdminClient();
-    console.log('OAuth: Creating session with Admin Client');
-    
-    let session: any;
-    
-    // 检查注册是否被禁用
-    if (!registrationConfig.enableRegistration) {
-      try {
-        // 先创建会话来检查用户是否存在
-        session = await account.createSession(userId, secret);
-        
-        // 获取用户信息检查创建时间
-        const user = await users.get(userId);
-        const userCreationTime = new Date(user.$createdAt).getTime();
-        const sessionCreationTime = new Date(session.$createdAt).getTime();
-        const timeDiff = Math.abs(sessionCreationTime - userCreationTime);
-        
-        // 如果用户和会话创建时间相近（小于5分钟），认为是新注册
-        if (timeDiff < 300000) { // 5分钟
-          console.log('OAuth: New user registration detected and registration disabled');
-          
-          // 删除刚创建的会话
-          try {
-            await account.deleteSession(session.$id);
-          } catch (sessionError) {
-            console.warn('OAuth: Failed to delete session:', sessionError);
-          }
-          
-          // 删除新用户
-          try {
-            await users.delete(userId);
-            console.log('OAuth: New user deleted due to registration disabled');
-          } catch (deleteError) {
-            console.warn('OAuth: Failed to delete new user:', deleteError);
-          }
-          
-          const headersList = await headers();
-          const redirectOrigin = headersList.get('host') 
-            ? `https://${headersList.get('host')}` 
-            : url.origin;
-          return NextResponse.redirect(`${redirectOrigin}/oauth-complete?error=registration_disabled`);
-        }
-        
-        console.log('OAuth: Existing user login allowed');
-        // 会话已创建，继续正常流程
-      } catch (error) {
-        console.error('OAuth: Error checking user registration status:', error);
-        // 如果检查失败，为了安全起见，阻止登录
-        const headersList = await headers();
-        const redirectOrigin = headersList.get('host') 
-          ? `https://${headersList.get('host')}` 
-          : url.origin;
-        return NextResponse.redirect(`${redirectOrigin}/oauth-complete?error=registration_disabled`);
-      }
-    } else {
-      // 注册允许，正常创建会话
-      session = await account.createSession(userId, secret);
-      console.log('OAuth: Session created successfully');
-    }
-    
-    // 确保会话存在才设置cookie
-    if (!session) {
-      console.error('OAuth: Session not created');
-      const headersList = await headers();
-      const redirectOrigin = headersList.get('host') 
-        ? `https://${headersList.get('host')}` 
-        : url.origin;
-      return NextResponse.redirect(`${redirectOrigin}/oauth-complete?error=registration_disabled`);
-    }
-
-    // 设置会话 cookie
+    // 创建响应对象用于设置 cookie
     const cookieStore = await cookies();
-    cookieStore.set("appwrite-session", session.secret, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+    
+    // 创建临时响应对象用于收集 cookie
+    const tempResponse = NextResponse.next();
+    const cookiesToSet: Array<{ name: string; value: string; options?: any }> = [];
+    
+    // 创建 Supabase 客户端，配置 cookie 处理
+    const supabase = createServerClient(config.url, config.publishableKey, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSetArray) {
+          cookiesToSetArray.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+            cookiesToSet.push({ name, value, options });
+          });
+        }
+      }
     });
 
-    console.log('OAuth: Session cookie set');
+    // 交换 code 获取 session
+    console.log('OAuth: Exchanging code for session...');
+    const { data: { session }, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    
+    if (exchangeError) {
+      console.error('OAuth: Failed to exchange code for session:', exchangeError);
+      return NextResponse.redirect(`${redirectOrigin}/oauth-complete?error=oauth_session_failed`);
+    }
+
+    if (!session) {
+      console.error('OAuth: No session returned after code exchange');
+      return NextResponse.redirect(`${redirectOrigin}/oauth-complete?error=oauth_session_failed`);
+    }
+
+    console.log('OAuth: Session established successfully, session ID:', session.access_token?.substring(0, 20) + '...');
+
+    // 获取用户信息
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('OAuth: Failed to get user after session exchange:', userError);
+      return NextResponse.redirect(`${redirectOrigin}/oauth-complete?error=oauth_session_failed`);
+    }
+
+    console.log('OAuth: User retrieved successfully:', user.id);
+
+    // 检查注册是否被禁用
+    if (!registrationConfig.enableRegistration) {
+      // 检查用户创建时间（如果是新用户，删除）
+      const userCreationTime = new Date(user.created_at).getTime();
+      const now = Date.now();
+      const timeDiff = now - userCreationTime;
+      
+      // 如果用户创建时间很近（小于5分钟），认为是新注册
+      if (timeDiff < 300000) { // 5分钟
+        console.log('OAuth: New user registration detected and registration disabled');
+        
+        // 删除新用户（需要管理员权限）
+        try {
+          const { createAdminClient } = await import('@/lib/supabase-server');
+          const adminSupabase = await createAdminClient();
+          const { error: deleteError } = await adminSupabase.auth.admin.deleteUser(user.id);
+          
+          if (deleteError) {
+            console.warn('OAuth: Failed to delete new user:', deleteError);
+          } else {
+            console.log('OAuth: New user deleted due to registration disabled');
+          }
+        } catch (deleteError) {
+          console.warn('OAuth: Failed to delete new user:', deleteError);
+        }
+        
+        // 登出用户
+        await supabase.auth.signOut();
+        
+        return NextResponse.redirect(`${redirectOrigin}/oauth-complete?error=registration_disabled`);
+      }
+      
+      console.log('OAuth: Existing user login allowed');
+    }
+
+    console.log('OAuth: User authenticated successfully:', user.id);
 
     // 记录登录活动
     try {
@@ -121,7 +128,7 @@ export async function GET(request: Request) {
                        headersList.get('x-real-ip') || 
                        '0.0.0.0';
       
-      // 检测 OAuth 提供商类型（通过 referer 或者其他方式）
+      // 检测 OAuth 提供商类型
       const referer = headersList.get('referer') || '';
       let oauthProvider = 'OAuth';
       if (referer.includes('github.com')) {
@@ -131,9 +138,9 @@ export async function GET(request: Request) {
       }
       
       await activityService.logActivity({
-        userId,
+        user_id: user.id,
         action: ActivityType.SIGN_IN,
-        ipAddress,
+        ip_address: ipAddress,
         metadata: `${oauthProvider} login`
       });
 
@@ -144,30 +151,25 @@ export async function GET(request: Request) {
     }
 
     // 重定向到OAuth完成页面 - 用于处理弹窗关闭
-    const headersList = await headers();
-    const redirectOrigin = headersList.get('host') 
-      ? `https://${headersList.get('host')}` 
-      : url.origin;
-    
     console.log('OAuth: Redirecting to oauth-complete at:', `${redirectOrigin}/oauth-complete`);
-    return NextResponse.redirect(`${redirectOrigin}/oauth-complete`);
+    
+    // 创建重定向响应
+    const redirectResponse = NextResponse.redirect(`${redirectOrigin}/oauth-complete`);
+    
+    // 将所有设置的 cookie 复制到重定向响应
+    cookiesToSet.forEach(({ name, value, options }) => {
+      redirectResponse.cookies.set(name, value, options);
+    });
+    
+    console.log('OAuth: Cookies set in response:', cookiesToSet.length);
+    
+    return redirectResponse;
 
   } catch (error: any) {
     console.error('OAuth callback error:', error);
     
-    // 清理可能设置的无效 cookie
-    try {
-      const cookieStore = await cookies();
-      cookieStore.delete("appwrite-session");
-    } catch (cookieError) {
-      console.warn('Failed to clean up cookie:', cookieError);
-    }
-
     const url = new URL(request.url);
-    const headersList = await headers();
-    const redirectOrigin = headersList.get('host') 
-      ? `https://${headersList.get('host')}` 
-      : url.origin;
+    const redirectOrigin = url.origin;
     
     // 在catch块中也重定向到oauth-complete页面以便正确关闭弹窗
     return NextResponse.redirect(`${redirectOrigin}/oauth-complete?error=oauth_session_failed`);

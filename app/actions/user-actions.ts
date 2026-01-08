@@ -156,9 +156,9 @@ export async function logOAuthActivityAction(userId: string, metadata?: string):
                      '0.0.0.0';
     
     await activityService.logActivity({
-      userId,
+      user_id: userId,
       action: ActivityType.SIGN_IN,
-      ipAddress,
+      ip_address: ipAddress,
       metadata: metadata || 'GitHub OAuth login'
     });
     

@@ -98,13 +98,20 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
               clearInterval(checkClosed);
               
               // 登录成功处理 - 不刷新页面
-              console.log('GitHub OAuth 登录成功，更新认证状态');
+              console.log('GitHub OAuth success message received, refreshing user...');
+              // 增加延迟确保 cookie 已经设置
               setTimeout(async () => {
-                await refreshUser();
-                onSuccess?.();
-                onClose();
-                console.log('GitHub 登录模态已关闭，用户状态已更新');
-              }, 500);
+                try {
+                  await refreshUser();
+                  console.log('User refreshed after GitHub OAuth');
+                  onSuccess?.();
+                  onClose();
+                } catch (err) {
+                  console.error('Failed to refresh user after OAuth:', err);
+                  // 即使刷新失败，也关闭弹窗，让用户手动刷新
+                  onClose();
+                }
+              }, 800);
             } else if (event.data.type === 'OAUTH_ERROR') {
               console.log('GitHub OAuth error message received:', event.data.error);
               window.removeEventListener('message', messageListener);
@@ -189,13 +196,20 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
               clearInterval(checkClosed);
               
               // 登录成功处理 - 不刷新页面
-              console.log('Google OAuth 登录成功，更新认证状态');
+              console.log('Google OAuth success message received, refreshing user...');
+              // 增加延迟确保 cookie 已经设置
               setTimeout(async () => {
-                await refreshUser();
-                onSuccess?.();
-                onClose();
-                console.log('Google 登录模态已关闭，用户状态已更新');
-              }, 500);
+                try {
+                  await refreshUser();
+                  console.log('User refreshed after Google OAuth');
+                  onSuccess?.();
+                  onClose();
+                } catch (err) {
+                  console.error('Failed to refresh user after OAuth:', err);
+                  // 即使刷新失败，也关闭弹窗，让用户手动刷新
+                  onClose();
+                }
+              }, 800);
             } else if (event.data.type === 'OAUTH_ERROR') {
               console.log('Google OAuth error message received:', event.data.error);
               window.removeEventListener('message', messageListener);

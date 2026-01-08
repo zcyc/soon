@@ -1,4 +1,4 @@
-import { Login } from '../appwrite-login';
+import { LoginForm } from '../login-form';
 import { registrationConfig } from '@/lib/config';
 import { redirect } from 'next/navigation';
 
@@ -10,5 +10,5 @@ export default function SignUpPage() {
     redirect('/sign-in?error=registration_disabled');
   }
   
-  return <Login mode="signup" />;
+  return <LoginForm mode="signup" />;
 }

@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (result.success && result.data) {
         console.log('AuthContext: 设置用户状态:', {
-          userId: result.data.$id,
+          userId: result.data.id,
           userName: result.data.name,
           userEmail: result.data.email
         });

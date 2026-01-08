@@ -39,7 +39,7 @@ export default function VideoGalleryWrapper({ showPublic = false }: VideoGallery
             {errorMessage.includes('Unauthorized') ? (
               '🔒 数据库权限配置不正确。请按照设置指南的步骤6配置集合权限。'
             ) : (
-              '您的 Appwrite 数据库集合尚未设置。请按照设置指南在 Appwrite 控制台中手动创建必要的集合。'
+              '您的 Supabase 数据库表尚未设置。请按照 README 中的 SQL 语句在 Supabase SQL Editor 中创建必要的表。'
             )}
           </p>
           
@@ -65,7 +65,7 @@ export default function VideoGalleryWrapper({ showPublic = false }: VideoGallery
             </summary>
             <div className="mt-2 text-xs text-amber-600 dark:text-amber-400 space-y-1">
               <p>• 客户端 SDK 没有管理权限，无法自动创建集合</p>
-              <p>• 需要在 Appwrite 控制台中手动创建 "videos" 和 "reactions" 集合</p>
+              <p>• 需要在 Supabase SQL Editor 中执行 SQL 创建 "videos" 和 "reactions" 表</p>
               <p>• 设置指南包含详细的步骤说明</p>
               <p>• 完成设置后应用将正常工作</p>
             </div>

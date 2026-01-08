@@ -24,9 +24,8 @@ export default function OAuthCallbackPage() {
         
         console.log('OAuth callback page loaded with:', debugData);
         
-        // 提取回调参数
-        const userId = searchParams.get('userId');
-        const secret = searchParams.get('secret');
+        // Supabase OAuth 使用 code 参数
+        const code = searchParams.get('code');
         const error = searchParams.get('error');
 
         // 检查是否有错误
@@ -42,10 +41,11 @@ export default function OAuthCallbackPage() {
           return;
         }
 
-        // 检查必需参数
-        if (!userId || !secret) {
-          console.error('Missing OAuth callback parameters:', { userId: !!userId, secret: !!secret });
-          setError('Missing OAuth callback parameters');
+        // Supabase SSR 会自动处理 code 交换 token
+        // 我们只需要验证用户是否已登录
+        if (!code) {
+          console.error('Missing OAuth callback code parameter');
+          setError('Missing OAuth callback code');
           setStatus('error');
           
           // 3秒后重定向到登录页
@@ -57,14 +57,15 @@ export default function OAuthCallbackPage() {
 
         // 处理 OAuth 回调
         console.log('Processing OAuth callback...');
-        const result = await handleOAuthCallbackAction(userId, secret);
+        // Supabase 会自动处理 code，我们只需要验证用户
+        const result = await handleOAuthCallbackAction(code, code);
         
         if (result.success && result.data?.user) {
-          console.log('OAuth callback successful, user:', result.data.user.$id);
+          console.log('OAuth callback successful, user:', result.data.user.id);
           
           // 记录登录活动
           try {
-            const activityResult = await logOAuthActivityAction(result.data.user.$id, 'GitHub OAuth login');
+            const activityResult = await logOAuthActivityAction(result.data.user.id, 'OAuth login');
             if (activityResult.data?.warning) {
               console.warn('Activity logging warning:', activityResult.data.warning);
             }

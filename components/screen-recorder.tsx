@@ -1977,7 +1977,7 @@ export default function ScreenRecorder() {
     }
   };
 
-  const uploadToAppwrite = async () => {
+  const uploadVideo = async () => {
     if (!recordingState.recordedBlob) {
 
       return;
@@ -2948,7 +2948,7 @@ export default function ScreenRecorder() {
                 
                 {/* Upload button - functional for both logged-in users and guests */}
                 {user ? (
-                  <Button variant="outline" onClick={uploadToAppwrite} disabled={isUploading}>
+                  <Button variant="outline" onClick={uploadVideo} disabled={isUploading}>
                     {isUploading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>

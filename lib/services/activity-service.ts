@@ -1,4 +1,4 @@
-import { createAdminClient, config, Query, ID } from '@/lib/appwrite-server';
+import { createAdminClient, config } from '@/lib/supabase-server';
 
 export enum ActivityType {
   SIGN_UP = 'SIGN_UP',
@@ -14,47 +14,47 @@ export enum ActivityType {
 }
 
 export interface ActivityLog {
-  $id: string;
-  userId: string; // Appwrite user ID
+  id: string;
+  user_id: string; // Supabase user ID
   action: ActivityType;
   timestamp: string;
-  ipAddress: string;
+  ip_address: string;
   metadata?: string;
-  userName?: string;
-  $createdAt: string;
-  $updatedAt: string;
+  user_name?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface NewActivityLog {
-  userId: string;
+  user_id: string;
   action: ActivityType;
-  ipAddress?: string;
+  ip_address?: string;
   metadata?: string;
 }
 
 class ActivityService {
-  private readonly databaseId = config.databaseId;
-  private readonly collectionId = 'activity_logs';
+  private readonly collectionId = config.collectionsId.activity_logs;
 
   async logActivity(data: NewActivityLog): Promise<ActivityLog> {
     try {
       const activityData = {
-        userId: data.userId,
+        user_id: data.user_id,
         action: data.action,
-        ipAddress: data.ipAddress || '',
+        ip_address: data.ip_address || '',
         metadata: data.metadata || null,
         timestamp: new Date().toISOString()
       };
 
-      const { databases } = await createAdminClient();
-      const result = await databases.createDocument(
-        this.databaseId,
-        this.collectionId,
-        ID.unique(),
-        activityData
-      );
+      const supabase = await createAdminClient();
+      const { data: result, error } = await supabase
+        .from(this.collectionId)
+        .insert(activityData)
+        .select()
+        .single();
 
-      return result as unknown as ActivityLog;
+      if (error) throw error;
+
+      return result as ActivityLog;
     } catch (error) {
       console.error('Failed to log activity:', error);
       throw error;
@@ -63,18 +63,17 @@ class ActivityService {
 
   async getUserActivityLogs(userId: string, limit: number = 10): Promise<ActivityLog[]> {
     try {
-      const { databases } = await createAdminClient();
-      const result = await databases.listDocuments(
-        this.databaseId,
-        this.collectionId,
-        [
-          Query.equal('userId', userId),
-          Query.orderDesc('$createdAt'),
-          Query.limit(limit)
-        ]
-      );
+      const supabase = await createAdminClient();
+      const { data, error } = await supabase
+        .from(this.collectionId)
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
-      return result.documents as unknown as ActivityLog[];
+      if (error) throw error;
+
+      return (data || []) as ActivityLog[];
     } catch (error) {
       console.error('Failed to fetch activity logs:', error);
       throw error;
@@ -83,17 +82,16 @@ class ActivityService {
 
   async getAllActivityLogs(limit: number = 50): Promise<ActivityLog[]> {
     try {
-      const { databases } = await createAdminClient();
-      const result = await databases.listDocuments(
-        this.databaseId,
-        this.collectionId,
-        [
-          Query.orderDesc('$createdAt'),
-          Query.limit(limit)
-        ]
-      );
+      const supabase = await createAdminClient();
+      const { data, error } = await supabase
+        .from(this.collectionId)
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
-      return result.documents as unknown as ActivityLog[];
+      if (error) throw error;
+
+      return (data || []) as ActivityLog[];
     } catch (error) {
       console.error('Failed to fetch all activity logs:', error);
       throw error;

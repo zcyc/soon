@@ -1,7 +1,6 @@
-import { createAdminClient, createSessionClient, config } from '@/lib/appwrite-server';
+import { createSessionClient, createAdminClient } from '@/lib/supabase-server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { ID, Query, OAuthProvider } from 'node-appwrite';
 
 /**
  * 统一的会话 cookie 设置选项
@@ -14,31 +13,17 @@ const SESSION_COOKIE_OPTIONS = {
   path: '/',
 };
 
-/**
- * 设置会话 cookie
- */
-async function setSessionCookie(secret: string): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.set('appwrite-session', secret, SESSION_COOKIE_OPTIONS);
-}
-
-/**
- * 删除会话 cookie
- */
-async function deleteSessionCookie(): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.delete('appwrite-session');
-}
-
 export interface User {
-  $id: string;
-  name: string;
-  email: string;
-  emailVerification: boolean;
-  registration: string;
-  status: boolean;
-  passwordUpdate: string;
-  prefs: Record<string, any>;
+  id: string;
+  name?: string;
+  email?: string;
+  email_verified?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  user_metadata?: Record<string, any>;
+  app_metadata?: Record<string, any>;
+      // 向后兼容字段名
+  $id?: string;
 }
 
 /**
@@ -48,18 +33,32 @@ export async function createAccount(email: string, password: string, name: strin
   'use server';
   
   try {
-    const { users } = await createAdminClient();
+    const supabase = await createAdminClient();
     
     // 使用 Admin Client 创建用户
-    const user = await users.create(
-      ID.unique(),
+    const { data, error } = await supabase.auth.admin.createUser({
       email,
-      undefined, // phone (optional)
       password,
-      name
-    );
+      email_confirm: true, // 自动确认邮箱
+      user_metadata: {
+        name: name
+      }
+    });
 
-    return user as User;
+    if (error) throw error;
+
+    return {
+      id: data.user.id,
+      email: data.user.email,
+      name: data.user.user_metadata?.name || name,
+      email_verified: data.user.email_confirmed_at !== null,
+      created_at: data.user.created_at,
+      updated_at: data.user.updated_at,
+      user_metadata: data.user.user_metadata,
+      app_metadata: data.user.app_metadata,
+      // 向后兼容字段名
+      $id: data.user.id
+    };
   } catch (error: any) {
     console.error('Create account error:', error);
     throw new Error(error.message || 'Failed to create account');
@@ -73,15 +72,18 @@ export async function login(email: string, password: string) {
   'use server';
   
   try {
-    const { account } = await createAdminClient();
+    const supabase = await createSessionClient();
     
-    // 创建会话
-    const session = await account.createEmailPasswordSession(email, password);
-    
-    // 设置会话 cookie
-    await setSessionCookie(session.secret);
+    // 登录并创建会话
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
-    return session;
+    if (error) throw error;
+
+    // Supabase SSR 会自动处理 cookie
+    return data;
   } catch (error: any) {
     console.error('Login error:', error);
     throw new Error(error.message || 'Invalid email or password');
@@ -95,16 +97,11 @@ export async function logout() {
   'use server';
   
   try {
-    const { account } = await createSessionClient();
+    const supabase = await createSessionClient();
     
-    // 删除当前会话
-    await account.deleteSession('current');
-    
-    // 删除会话 cookie
-    await deleteSessionCookie();
+    // 登出
+    await supabase.auth.signOut();
   } catch (error: any) {
-    // 即使删除会话失败，也要删除 cookie
-    await deleteSessionCookie();
     console.error('Logout error:', error);
   }
 }
@@ -116,9 +113,23 @@ export async function getCurrentUser(): Promise<User | null> {
   'use server';
   
   try {
-    const { account } = await createSessionClient();
-    const user = await account.get();
-    return user as User;
+    const supabase = await createSessionClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) return null;
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.name || user.email?.split('@')[0],
+      email_verified: !!user.email_confirmed_at,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      user_metadata: user.user_metadata,
+      app_metadata: user.app_metadata,
+      // 向后兼容字段名
+      $id: user.id
+    };
   } catch (error) {
     return null;
   }
@@ -131,8 +142,12 @@ export async function updatePassword(oldPassword: string, newPassword: string) {
   'use server';
   
   try {
-    const { account } = await createSessionClient();
-    await account.updatePassword(newPassword, oldPassword);
+    const supabase = await createSessionClient();
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) throw error;
   } catch (error: any) {
     console.error('Update password error:', error);
     throw new Error(error.message || 'Failed to update password');
@@ -146,8 +161,13 @@ export async function updatePreferences(prefs: Record<string, any>) {
   'use server';
   
   try {
-    const { account } = await createSessionClient();
-    return await account.updatePrefs(prefs);
+    const supabase = await createSessionClient();
+    const { data, error } = await supabase.auth.updateUser({
+      data: prefs
+    });
+
+    if (error) throw error;
+    return data;
   } catch (error: any) {
     console.error('Update preferences error:', error);
     throw new Error(error.message || 'Failed to update preferences');
@@ -161,37 +181,51 @@ export async function createOAuth2Session(provider: string, success?: string, fa
   'use server';
   
   try {
-    const { account } = await createAdminClient();
+    const supabase = await createSessionClient();
     
-    // 在 Node SDK 中，我们需要使用 createOAuth2Token 方法
-    // 将字符串 provider 转换为 OAuthProvider 枚举
-    let oauthProvider: OAuthProvider;
+    // 构建回调 URL
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const redirectTo = success || `${baseUrl}/oauth-complete`;
+    const redirectToError = failure || `${baseUrl}/?error=oauth_failed`;
+    
+    // 根据 provider 选择 OAuth 提供商
+    let oauthProvider: 'github' | 'google';
     switch (provider.toLowerCase()) {
       case 'github':
-        oauthProvider = OAuthProvider.Github;
+        oauthProvider = 'github';
         break;
       case 'google':
-        oauthProvider = OAuthProvider.Google;
+        oauthProvider = 'google';
         break;
       default:
         throw new Error(`Unsupported OAuth provider: ${provider}`);
     }
     
     console.log('Creating OAuth2 session for provider:', provider, {
-      success,
-      failure,
-      nodeEnv: process.env.NODE_ENV
+      redirectTo,
+      redirectToError
     });
     
-    // createOAuth2Token 返回 OAuth URL 字符串
-    const oauthUrl = await account.createOAuth2Token(
-      oauthProvider,
-      success,
-      failure
-    );
+    // 创建 OAuth URL
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: oauthProvider,
+      options: {
+        redirectTo: redirectTo,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
+      }
+    });
+
+    if (error) throw error;
     
+    if (!data.url) {
+      throw new Error('Failed to generate OAuth URL');
+    }
+
     console.log('OAuth2 URL created successfully');
-    return oauthUrl;
+    return data.url;
   } catch (error: any) {
     console.error('OAuth2 session error:', error);
     throw new Error(error.message || 'Failed to create OAuth2 session');
@@ -205,65 +239,34 @@ export async function handleOAuthCallback(userId?: string, secret?: string): Pro
   'use server';
   
   try {
-    console.log('OAuth callback handler called with:', { userId, secret: secret ? '***' : undefined });
-    console.log('Environment check:', {
-      endpoint: process.env.NEXT_APPWRITE_ENDPOINT || 'MISSING',
-      projectId: process.env.NEXT_APPWRITE_PROJECT_ID || 'MISSING',
-      hasApiKey: !!process.env.NEXT_APPWRITE_API_KEY
-    });
+    console.log('OAuth callback handler called');
     
-    if (!userId || !secret) {
-      // 尝试从 URL 参数获取
-      const cookieStore = await cookies();
-      
-      // 检查是否已有会话
-      const existingSessionCookie = cookieStore.get('appwrite-session');
-      if (existingSessionCookie?.value) {
-        try {
-          const user = await getCurrentUser();
-          if (user) {
-            console.log('OAuth callback: Found existing session for user:', user.$id);
-            return { success: true, user };
-          }
-        } catch (error) {
-          console.log('OAuth callback: Existing session invalid, continuing...');
-        }
-      }
-      
-      return { success: false, error: 'Missing OAuth callback parameters' };
-    }
+    const supabase = await createSessionClient();
     
-    // 使用提供的 secret 创建会话 cookie
-    await setSessionCookie(secret);
+    // Supabase 会自动从 URL 参数中提取 code 并交换 token
+    // 我们只需要验证用户是否已登录
+    const { data: { user }, error } = await supabase.auth.getUser();
     
-    // 验证会话是否有效
-    try {
-      console.log('OAuth callback: Attempting to validate session with config:', {
-        endpoint: config.endpoint,
-        projectId: config.projectId,
-        hasApiKey: !!config.apiKey
-      });
-      
-      const user = await getCurrentUser();
-      if (user) {
-        console.log('OAuth callback success: Session established for user:', user.$id);
-        return { success: true, user };
-      } else {
-        console.error('OAuth callback: getCurrentUser returned null');
-        throw new Error('Failed to get user after setting session');
-      }
-    } catch (sessionError) {
-      // 清理无效的 cookie
-      await deleteSessionCookie();
-      console.error('OAuth callback: Session validation failed:', sessionError);
-      console.error('Session error details:', {
-        message: sessionError instanceof Error ? sessionError.message : 'Unknown error',
-        name: sessionError instanceof Error ? sessionError.name : 'UnknownError',
-        stack: sessionError instanceof Error ? sessionError.stack : undefined
-      });
+    if (error || !user) {
+      console.error('OAuth callback: Failed to get user', error);
       return { success: false, error: 'Failed to establish session' };
     }
+
+    console.log('OAuth callback success: Session established for user:', user.id);
     
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata?.name || user.email?.split('@')[0],
+        email_verified: !!user.email_confirmed_at,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        user_metadata: user.user_metadata,
+        app_metadata: user.app_metadata
+      }
+    };
   } catch (error: any) {
     console.error('OAuth callback error:', error);
     return { success: false, error: error.message || 'OAuth callback failed' };
@@ -276,17 +279,20 @@ export async function handleOAuthCallback(userId?: string, secret?: string): Pro
 export async function extractOAuthCallbackData(searchParams: URLSearchParams): Promise<{ userId?: string; secret?: string; error?: string }> {
   'use server';
   
-  const userId = searchParams.get('userId');
-  const secret = searchParams.get('secret');
+  // Supabase OAuth 使用 code 参数而不是 userId/secret
+  const code = searchParams.get('code');
   const error = searchParams.get('error');
   
   console.log('Extracted OAuth callback data:', {
-    hasUserId: !!userId,
-    hasSecret: !!secret,
+    hasCode: !!code,
     error
   });
   
-  return { userId: userId || undefined, secret: secret || undefined, error: error || undefined };
+  return { 
+    userId: code || undefined, // 使用 code 作为临时标识
+    secret: code || undefined,
+    error: error || undefined 
+  };
 }
 
 /**

@@ -34,15 +34,21 @@ export default function OAuthCompletePage() {
         }, window.location.origin);
       } else {
         // 通知父窗口OAuth已成功完成
-        console.log('OAuth: Notifying parent window of success');
-        window.opener.postMessage({ type: 'OAUTH_SUCCESS' }, window.location.origin);
+        // 延迟一下确保 cookie 已经设置
+        setTimeout(() => {
+          console.log('OAuth: Notifying parent window of success');
+          window.opener.postMessage({ 
+            type: 'OAUTH_SUCCESS',
+            timestamp: Date.now()
+          }, window.location.origin);
+        }, 300);
       }
       
       // 短暂延迟后关闭窗口
       setTimeout(() => {
         console.log('OAuth: Closing popup window');
         window.close();
-      }, 500);
+      }, 1000);
     } else {
       // 如果不是在弹窗中打开，重定向到主页或登录页
       if (error) {
@@ -50,10 +56,13 @@ export default function OAuthCompletePage() {
         window.location.href = `/sign-in?error=${error}`;
       } else {
         console.log('OAuth: Not in popup, redirecting to main page');
-        window.location.href = '/';
+        // 延迟一下确保 cookie 已经设置
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 500);
       }
     }
-  }, [error]);
+  }, [error, t]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

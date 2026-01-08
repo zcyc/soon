@@ -1,27 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/appwrite-server';
-import { OAuthProvider } from 'node-appwrite';
+import { createSessionClient } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { account } = await createAdminClient();
+    const supabase = await createSessionClient();
     
-    // 获取当前域名
-    const origin = request.headers.get('origin') || 'http://localhost:3000';
+    // 获取当前域名（使用请求 URL 的 origin，自动包含正确的协议）
+    const url = new URL(request.url);
+    const origin = url.origin;
     
-    console.log('API: Creating GitHub OAuth2 token with origin:', origin);
+    console.log('API: Creating GitHub OAuth2 session with origin:', origin);
     
-    const redirectUrl = await account.createOAuth2Token(
-      OAuthProvider.Github,
-      `${origin}/oauth`, // 成功回调路由
-      `${origin}/?error=oauth_failed`, // 失败回调到主页
-    );
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `${origin}/oauth`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
+      }
+    });
+
+    if (error) throw error;
+
+    if (!data.url) {
+      throw new Error('Failed to generate OAuth URL');
+    }
 
     console.log('API: GitHub OAuth redirect URL created');
     
     return NextResponse.json({ 
       success: true, 
-      url: redirectUrl 
+      url: data.url 
     });
   } catch (error: any) {
     console.error('GitHub OAuth API error:', error);

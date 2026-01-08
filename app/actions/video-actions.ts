@@ -1,6 +1,7 @@
 'use server';
 
 import { uploadFile, createVideoRecord, getUserVideos, getPublicVideos, getVideoById, toggleVideoPrivacy, toggleVideoPublishStatus, deleteVideo, addReaction, getVideoReactions, incrementViews, updateVideoThumbnail, getFileUrl } from '@/lib/server-database';
+import { mapVideoRecord, mapVideoReaction } from '@/lib/database';
 import { getCurrentUser } from '@/lib/auth/server-auth';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -37,15 +38,15 @@ export async function uploadVideoFileAction(formData: FormData): Promise<ActionR
     // Create video record
     const videoRecord = await createVideoRecord({
       title,
-      fileId: uploadedFile.$id,
+      file_id: uploadedFile.$id,
       quality,
-      userId: user.$id,
-      userName: user.name,
+      user_id: user.id,
+      user_name: user.name || user.email?.split('@')[0] || 'User',
       duration,
-      isPublic,
-      isPublish,
-      thumbnailUrl,
-      subtitleFileId: null
+      is_public: isPublic,
+      is_publish: isPublish,
+      thumbnail_url: thumbnailUrl,
+      subtitle_file_id: null
     });
 
     revalidatePath('/dashboard');
@@ -54,7 +55,7 @@ export async function uploadVideoFileAction(formData: FormData): Promise<ActionR
     return { 
       success: true, 
       data: { 
-        videoId: videoRecord.$id, 
+        videoId: videoRecord.id, 
         fileId: uploadedFile.$id 
       } 
     };
@@ -72,9 +73,12 @@ export async function getUserVideosAction(): Promise<ActionResult> {
       return { error: 'User not authenticated' };
     }
 
-    const videos = await getUserVideos(user.$id);
+    const videos = await getUserVideos(user.id);
     
-    return { success: true, data: videos };
+    // 映射为兼容格式
+    const mappedVideos = videos.map(mapVideoRecord);
+    
+    return { success: true, data: mappedVideos };
   } catch (error: any) {
     console.error('Get user videos error:', error);
     return { error: error.message || 'Failed to fetch videos' };
@@ -86,7 +90,10 @@ export async function getPublicVideosAction(): Promise<ActionResult> {
   try {
     const videos = await getPublicVideos();
     
-    return { success: true, data: videos };
+    // 映射为兼容格式
+    const mappedVideos = videos.map(mapVideoRecord);
+    
+    return { success: true, data: mappedVideos };
   } catch (error: any) {
     console.error('Get public videos error:', error);
     return { error: error.message || 'Failed to fetch public videos' };
@@ -98,7 +105,10 @@ export async function getVideoByIdAction(videoId: string): Promise<ActionResult>
   try {
     const video = await getVideoById(videoId);
     
-    return { success: true, data: video };
+    // 映射为兼容格式
+    const mappedVideo = mapVideoRecord(video);
+    
+    return { success: true, data: mappedVideo };
   } catch (error: any) {
     console.error('Get video by ID error:', error);
     return { error: error.message || 'Failed to fetch video' };
@@ -189,7 +199,10 @@ export async function getVideoReactionsAction(videoId: string): Promise<ActionRe
   try {
     const reactions = await getVideoReactions(videoId);
     
-    return { success: true, data: reactions };
+    // 映射为兼容格式
+    const mappedReactions = reactions.map(mapVideoReaction);
+    
+    return { success: true, data: mappedReactions };
   } catch (error: any) {
     console.error('Get video reactions error:', error);
     return { error: error.message || 'Failed to fetch reactions' };
