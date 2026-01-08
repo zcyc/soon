@@ -30,6 +30,12 @@ export interface Translations {
     cameraRecordingDesc: string;
     audioRecordingTitle: string;
     audioRecordingDesc: string;
+    highQualityTitle: string;
+    highQualityDesc: string;
+    easyShareTitle: string;
+    easyShareDesc: string;
+    privacyProtectionTitle: string;
+    privacyProtectionDesc: string;
     ctaTitle: string;
     ctaDescription: string;
     getStarted: string;
@@ -411,8 +417,14 @@ export const translations: Record<Locale, Translations> = {
       cameraRecordingDesc: 'Works seamlessly across all major browsers with full cross-platform compatibility.',
       audioRecordingTitle: 'Desktop • Camera • Audio',
       audioRecordingDesc: 'Comprehensive recording capabilities including screen capture, webcam, and high-quality audio.',
+      highQualityTitle: 'High Quality Output',
+      highQualityDesc: 'Support for 720p and 1080p recording with customizable bitrate and frame rate.',
+      easyShareTitle: 'Easy Sharing',
+      easyShareDesc: 'Share videos with one click, generate public links, support download and online playback.',
+      privacyProtectionTitle: 'Privacy Protection',
+      privacyProtectionDesc: 'Full control over video visibility with support for public and private settings.',
       ctaTitle: 'Ready to Start Recording?',
-      ctaDescription: 'Join SOON today and start creating amazing screen recordings in minutes.',
+      ctaDescription: 'Start creating your first video now.',
       getStarted: 'Get Started for Free',
     },
     dashboard: {
@@ -768,8 +780,14 @@ export const translations: Record<Locale, Translations> = {
       cameraRecordingDesc: '完美兼容所有主流浏览器，提供跨平台一致体验。',
       audioRecordingTitle: '支持录制桌面、摄像头、语音',
       audioRecordingDesc: '全方位录制功能，支持屏幕捕获、摄像头录制和高质量音频采集。',
-      ctaTitle: '准备开始录制了吗？',
-      ctaDescription: '立即加入 SOON，在几分钟内开始创建令人惊叹的屏幕录制。',
+      highQualityTitle: '高质量输出',
+      highQualityDesc: '支持 720p 和 1080p 录制，可自定义比特率和帧率',
+      easyShareTitle: '轻松分享',
+      easyShareDesc: '一键分享视频，生成公开链接，支持下载和在线播放',
+      privacyProtectionTitle: '隐私保护',
+      privacyProtectionDesc: '完全控制视频的可见性，支持公开和私有设置',
+      ctaTitle: '准备好开始录制了吗？',
+      ctaDescription: '立即开始创建您的第一个视频',
       getStarted: '免费开始使用',
     },
     dashboard: {

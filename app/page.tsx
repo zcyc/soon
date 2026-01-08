@@ -107,10 +107,10 @@ export default function LandingPage() {
                 <Zap className="h-8 w-8 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-2">
-                高质量输出
+                {t.home?.highQualityTitle || '高质量输出'}
               </h3>
               <p className="text-muted-foreground">
-                支持 720p 和 1080p 录制，可自定义比特率和帧率
+                {t.home?.highQualityDesc || '支持 720p 和 1080p 录制，可自定义比特率和帧率'}
               </p>
             </div>
 
@@ -119,10 +119,10 @@ export default function LandingPage() {
                 <Share2 className="h-8 w-8 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-2">
-                轻松分享
+                {t.home?.easyShareTitle || '轻松分享'}
               </h3>
               <p className="text-muted-foreground">
-                一键分享视频，生成公开链接，支持下载和在线播放
+                {t.home?.easyShareDesc || '一键分享视频，生成公开链接，支持下载和在线播放'}
               </p>
             </div>
 
@@ -131,10 +131,10 @@ export default function LandingPage() {
                 <Shield className="h-8 w-8 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-2">
-                隐私保护
+                {t.home?.privacyProtectionTitle || '隐私保护'}
               </h3>
               <p className="text-muted-foreground">
-                完全控制视频的可见性，支持公开和私有设置
+                {t.home?.privacyProtectionDesc || '完全控制视频的可见性，支持公开和私有设置'}
               </p>
             </div>
           </div>
@@ -145,15 +145,15 @@ export default function LandingPage() {
       <section className="py-20 bg-muted/50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            准备好开始录制了吗？
+            {t.home?.ctaTitle || '准备好开始录制了吗？'}
           </h2>
           <p className="text-xl text-muted-foreground mb-8">
-            立即开始创建您的第一个视频
+            {t.home?.ctaDescription || '立即开始创建您的第一个视频'}
           </p>
           <Link href="/record">
             <Button size="lg" className="text-lg px-8 py-6">
               <Play className="mr-2 h-5 w-5" />
-              开始录制
+              {t.home?.startRecording || '开始录制'}
             </Button>
           </Link>
         </div>
