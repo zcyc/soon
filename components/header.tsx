@@ -134,10 +134,10 @@ export default function Header() {
           </Link>
           <nav className="flex items-center space-x-4">
             <Link
-              href="/"
+              href="/record"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              {t.nav.record}
+              {t.nav.record || '录制'}
             </Link>
             <Link
               href="/discover"

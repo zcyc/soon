@@ -50,7 +50,7 @@ export async function updateUserPreferencesAction(preferences: Record<string, an
 
     const updatedPrefs = await updatePreferences(preferences);
     
-    revalidatePath('/dashboard');
+    revalidatePath('/record');
     
     return { success: true, data: updatedPrefs };
   } catch (error: any) {
@@ -64,7 +64,7 @@ export async function loginAction(email: string, password: string): Promise<Acti
   try {
     await login(email, password);
     
-    revalidatePath('/dashboard');
+    revalidatePath('/record');
     
     return { success: true };
   } catch (error: any) {
@@ -82,7 +82,7 @@ export async function registerAction(email: string, password: string, name: stri
     // 自动登录
     await login(email, password);
     
-    revalidatePath('/dashboard');
+    revalidatePath('/record');
     
     return { success: true };
   } catch (error: any) {
@@ -123,7 +123,7 @@ export async function handleOAuthCallbackAction(userId?: string, secret?: string
     const result = await handleOAuthCallback(userId, secret);
     
     if (result.success) {
-      revalidatePath('/dashboard');
+      revalidatePath('/record');
       revalidatePath('/');
       return { success: true, data: { user: result.user } };
     } else {

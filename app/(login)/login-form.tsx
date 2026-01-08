@@ -40,7 +40,7 @@ export function LoginForm({ mode }: LoginFormProps) {
           setError(result.error);
         } else {
           await refreshUser();
-          router.push('/dashboard');
+          router.push('/record');
         }
       } else {
         const result = await signIn(new FormData(e.target as HTMLFormElement));
@@ -48,7 +48,7 @@ export function LoginForm({ mode }: LoginFormProps) {
           setError(result.error);
         } else {
           await refreshUser();
-          router.push('/dashboard');
+          router.push('/record');
         }
       }
     } catch (err: any) {

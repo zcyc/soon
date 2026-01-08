@@ -1,28 +1,17 @@
 'use client';
 
-import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Video } from 'lucide-react';
-import { useI18n } from '@/lib/i18n';
-import ScreenRecorder from '@/components/screen-recorder';
-import VideoGalleryWrapper from '@/components/video-gallery-wrapper';
+import { useEffect } from 'react';
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
   const router = useRouter();
-  const { t } = useI18n();
 
-  // 重定向到主页，因为现在主页已经集成了所有功能
+  // 重定向到录制页面
   useEffect(() => {
-    if (!loading) {
-      router.replace('/'); // 使用 replace 避免在浏览器历史中留下记录
-    }
-  }, [loading, router]);
+    router.replace('/record');
+  }, [router]);
 
-  // 显示加载状态，然后重定向
+  // 显示加载状态
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="text-center">

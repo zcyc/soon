@@ -49,7 +49,7 @@ export async function uploadVideoFileAction(formData: FormData): Promise<ActionR
       subtitle_file_id: null
     });
 
-    revalidatePath('/dashboard');
+    revalidatePath('/record');
     revalidatePath('/discover');
 
     return { 
@@ -125,7 +125,7 @@ export async function toggleVideoPrivacyAction(videoId: string): Promise<ActionR
 
     const updatedVideo = await toggleVideoPrivacy(videoId, user.$id);
     
-    revalidatePath('/dashboard');
+    revalidatePath('/record');
     revalidatePath('/discover');
     
     return { success: true, data: updatedVideo };
@@ -145,7 +145,7 @@ export async function toggleVideoPublishStatusAction(videoId: string): Promise<A
 
     const updatedVideo = await toggleVideoPublishStatus(videoId, user.$id);
     
-    revalidatePath('/dashboard');
+    revalidatePath('/record');
     revalidatePath('/discover');
     
     return { success: true, data: updatedVideo };
@@ -165,7 +165,7 @@ export async function deleteVideoAction(videoId: string, fileId?: string): Promi
 
     const result = await deleteVideo(videoId, fileId);
     
-    revalidatePath('/dashboard');
+    revalidatePath('/record');
     revalidatePath('/discover');
     
     return { success: true, data: result };
@@ -232,7 +232,7 @@ export async function updateVideoThumbnailAction(videoId: string, thumbnailUrl: 
 
     const updatedVideo = await updateVideoThumbnail(videoId, thumbnailUrl, user.$id);
     
-    revalidatePath('/dashboard');
+    revalidatePath('/record');
     
     return { success: true, data: updatedVideo };
   } catch (error: any) {

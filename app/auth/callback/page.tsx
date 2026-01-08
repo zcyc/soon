@@ -78,7 +78,7 @@ export default function OAuthCallbackPage() {
           
           // 1秒后重定向到仪表板
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push('/record');
           }, 1000);
           
         } else {

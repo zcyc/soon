@@ -39,8 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const isLoginPage = window.location.pathname.includes('sign-in') || 
                              window.location.pathname.includes('sign-up');
           if (isLoginPage && !window.location.search.includes('error')) {
-            // Successful OAuth callback, redirect to dashboard
-            window.location.href = '/dashboard';
+            // Successful OAuth callback, redirect to record page
+            window.location.href = '/record';
           }
         }
       } else {
