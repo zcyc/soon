@@ -228,10 +228,17 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
   const handleDeleteConfirm = async (videoId: string) => {
     try {
       setDeletingVideoId(videoId);
-      const result = await deleteVideoAction(videoId);
+      // 获取视频信息以传递 fileId
+      const video = videos.find(v => v.id === videoId);
+      const fileId = video?.file_id;
+      const result = await deleteVideoAction(videoId, fileId);
       
       if (result.success) {
         setVideos(videos.filter(video => video.id !== videoId));
+        // 如果删除的是当前选中的视频，关闭弹窗
+        if (selectedVideo && selectedVideo.id === videoId) {
+          setSelectedVideo(null);
+        }
         closeDeleteModal();
       } else {
         throw new Error(result.error || 'Failed to delete video');
@@ -494,6 +501,24 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
                     <Button key="download" variant="outline" onClick={() => handleDownload(selectedVideo)}>
                       <Download className="h-4 w-4 mr-2" />
                       {t.videos.download}
+                    </Button>
+                  )}
+                  
+                  {/* 删除按钮 - 仅视频所有者显示 */}
+                  {(!showPublic && user && user.id === selectedVideo.userId) && (
+                    <Button 
+                      key="delete" 
+                      variant="outline" 
+                      onClick={() => handleDeleteClick(selectedVideo)}
+                      disabled={deletingVideoId === selectedVideo.id}
+                      className="border-red-300 text-red-700 hover:bg-red-50"
+                    >
+                      {deletingVideoId === selectedVideo.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 mr-2 border border-current border-t-transparent" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-2" />
+                      )}
+                      {t.videos.delete}
                     </Button>
                   )}
                 </div>

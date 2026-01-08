@@ -69,20 +69,20 @@ export function DeleteModal({
 
   const modalContent = (
     <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
       onClick={handleBackdropClick}
     >
       <div 
-        className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 transform transition-all duration-200 scale-100"
+        className="relative w-full max-w-md bg-background rounded-lg shadow-lg border border-border transform transition-all duration-200 scale-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/20">
-              <Trash2 className="h-5 w-5 text-red-600 dark:text-red-500" />
+            <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-destructive/10">
+              <Trash2 className="h-5 w-5 text-destructive" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="text-lg font-semibold text-foreground">
               删除确认
             </h3>
           </div>
@@ -90,7 +90,7 @@ export function DeleteModal({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="h-8 w-8 p-0"
               onClick={onClose}
             >
               <X className="h-4 w-4" />
@@ -100,16 +100,16 @@ export function DeleteModal({
 
         {/* Content */}
         <div className="p-6">
-          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-            确定要删除视频 <strong className="font-semibold text-gray-900 dark:text-gray-100">"{title}"</strong> 吗？
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            确定要删除视频 <strong className="font-semibold text-foreground">"{title}"</strong> 吗？
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             {description}
           </p>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg">
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-border bg-muted/50 rounded-b-lg">
           <Button
             variant="outline"
             onClick={onClose}
@@ -126,7 +126,7 @@ export function DeleteModal({
           >
             {isLoading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-destructive-foreground mr-2"></div>
                 删除中...
               </>
             ) : (
