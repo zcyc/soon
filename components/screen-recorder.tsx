@@ -1989,7 +1989,7 @@ export default function ScreenRecorder() {
     }
 
     console.log('User authenticated:', {
-      userId: user.$id,
+      userId: user.id,
       userEmail: user.email,
       userName: user.name
     });

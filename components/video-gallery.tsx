@@ -151,8 +151,8 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
     setIsVideoPlaying(false); // Reset playing state
     
     // Increment view count
-    if (showPublic || (user && user.$id !== video.userId)) {
-      await incrementVideoViewsAction(video.$id);
+    if (showPublic || (user && user.id !== video.userId)) {
+      await incrementVideoViewsAction(video.id);
     }
   };
 
@@ -168,7 +168,7 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
   };
 
   const handleShare = async (video: Video) => {
-    const shareUrl = `${window.location.origin}/share/${video.$id}`;
+    const shareUrl = `${window.location.origin}/share/${video.id}`;
     
     if (navigator.share) {
       try {
@@ -191,7 +191,7 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
   };
 
   const handleCopyShareLink = async (video: Video) => {
-    const shareLink = `${window.location.origin}/share/${video.$id}`;
+    const shareLink = `${window.location.origin}/share/${video.id}`;
     try {
       await navigator.clipboard.writeText(shareLink);
       // 成功复制，可以在这里添加成功提示
@@ -203,7 +203,7 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
 
   const handleDownload = async (video: Video) => {
     try {
-      const videoUrl = await getVideoUrl(video.fileId);
+      const videoUrl = await getVideoUrl(video.file_id);
       if (videoUrl && videoUrl !== '#') {
         const link = document.createElement('a');
         link.href = videoUrl;
@@ -221,7 +221,7 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
     openDeleteModal({
       title: video.title,
       description: t.videos.deleteConfirmation,
-      onConfirm: () => handleDeleteConfirm(video.$id)
+      onConfirm: () => handleDeleteConfirm(video.id)
     });
   };
 
@@ -231,7 +231,7 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
       const result = await deleteVideoAction(videoId);
       
       if (result.success) {
-        setVideos(videos.filter(video => video.$id !== videoId));
+        setVideos(videos.filter(video => video.id !== videoId));
         closeDeleteModal();
       } else {
         throw new Error(result.error || 'Failed to delete video');
@@ -246,12 +246,18 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
 
   const handlePrivacyToggle = async (video: Video) => {
     try {
-      setUpdatingPrivacyId(video.$id);
-      const result = await toggleVideoPrivacyAction(video.$id);
+      setUpdatingPrivacyId(video.id);
+      const result = await toggleVideoPrivacyAction(video.id);
       
       if (result.success && result.data) {
+        const updatedVideo = result.data;
         // Update video list immediately
-        setVideos(videos.map(v => v.$id === video.$id ? result.data! : v));
+        setVideos(videos.map(v => v.id === video.id ? updatedVideo : v));
+        
+        // 如果当前选中的视频就是被更新的视频，也要更新 selectedVideo
+        if (selectedVideo && selectedVideo.id === video.id) {
+          setSelectedVideo(updatedVideo);
+        }
       } else {
         throw new Error(result.error || 'Failed to update privacy');
       }
@@ -264,11 +270,17 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
 
   const handlePublishToggle = async (video: Video) => {
     try {
-      setUpdatingPublishId(video.$id);
-      const result = await toggleVideoPublishStatusAction(video.$id);
+      setUpdatingPublishId(video.id);
+      const result = await toggleVideoPublishStatusAction(video.id);
       
       if (result.success && result.data) {
-        setVideos(videos.map(v => v.$id === video.$id ? result.data! : v));
+        const updatedVideo = result.data;
+        setVideos(videos.map(v => v.id === video.id ? updatedVideo : v));
+        
+        // 如果当前选中的视频就是被更新的视频，也要更新 selectedVideo
+        if (selectedVideo && selectedVideo.id === video.id) {
+          setSelectedVideo(updatedVideo);
+        }
       } else {
         throw new Error(result.error || 'Failed to update publish status');
       }
@@ -325,9 +337,9 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-3 gap-y-1">
         {filteredVideos.map((video) => (
           <VideoCardWithUrl
-            key={video.$id}
+            key={video.id}
             video={video}
-            isOwner={Boolean(!showPublic && user && user.$id === video.userId)}
+            isOwner={Boolean(!showPublic && user && user.id === video.userId)}
             showPublic={showPublic}
             onVideoClick={handleVideoClick}
             onShare={handleShare}
@@ -409,7 +421,7 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
                 ) : (
                   // 只有在点击播放后才加载视频
                   <VideoPlayerModal
-                    fileId={selectedVideo.fileId}
+                    fileId={selectedVideo.file_id || ''}
                     isPlaying={isVideoPlaying}
                     onLoadStart={() => console.log('Video loading started')}
                     className="w-full h-full"
@@ -419,7 +431,7 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
               
               <div className="mt-4 flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                  <p>{t.videos.created}: {formatDate(selectedVideo.$createdAt)}</p>
+                  <p>{t.videos.created}: {formatDate(selectedVideo.created_at)}</p>
                   <p>{t.videos.duration}: {formatDuration(selectedVideo.duration)}</p>
                   <p>{t.videos.quality}: {selectedVideo.quality}</p>
                   <p>{t.videos.views}: {selectedVideo.views}</p>
@@ -427,57 +439,59 @@ export default function VideoGallery({ showPublic = false, onError }: VideoGalle
                 
                 <div className="flex space-x-2">
                   {/* 用户自己的视频 - 显示所有按钮 */}
-                  {(!showPublic && user && user.$id === selectedVideo.userId) && (
-                    <>
-                      <Button
-                        variant="outline"
-                        onClick={() => handlePrivacyToggle(selectedVideo)}
-                        disabled={updatingPrivacyId === selectedVideo.$id}
-                        className={selectedVideo.isPublic ? "border-orange-300 text-orange-700 hover:bg-orange-50" : "border-green-300 text-green-700 hover:bg-green-50"}
-                      >
-                        {updatingPrivacyId === selectedVideo.$id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 mr-2 border border-current border-t-transparent" />
-                        ) : selectedVideo.isPublic ? (
-                          <Lock className="h-4 w-4 mr-2" />
-                        ) : (
-                          <Globe className="h-4 w-4 mr-2" />
-                        )}
-                        {selectedVideo.isPublic ? t.videos.makePrivate : t.videos.makePublic}
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        onClick={() => handlePublishToggle(selectedVideo)}
-                        disabled={updatingPublishId === selectedVideo.$id}
-                        className={selectedVideo.isPublish ? "border-red-300 text-red-700 hover:bg-red-50" : "border-blue-300 text-blue-700 hover:bg-blue-50"}
-                      >
-                        {updatingPublishId === selectedVideo.$id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 mr-2 border border-current border-t-transparent" />
-                        ) : selectedVideo.isPublish ? (
-                          <Shield className="h-4 w-4 mr-2" />
-                        ) : (
-                          <Rss className="h-4 w-4 mr-2" />
-                        )}
-                        {selectedVideo.isPublish ? t.publish.removeFromDiscovery : t.publish.publishToDiscovery}
-                      </Button>
-                    </>
+                  {(!showPublic && user && user.id === selectedVideo.userId) && (
+                    <Button
+                      key="privacy-toggle"
+                      variant="outline"
+                      onClick={() => handlePrivacyToggle(selectedVideo)}
+                      disabled={updatingPrivacyId === selectedVideo.id}
+                      className={selectedVideo.isPublic ? "border-orange-300 text-orange-700 hover:bg-orange-50" : "border-green-300 text-green-700 hover:bg-green-50"}
+                    >
+                      {updatingPrivacyId === selectedVideo.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 mr-2 border border-current border-t-transparent" />
+                      ) : selectedVideo.isPublic ? (
+                        <Lock className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Globe className="h-4 w-4 mr-2" />
+                      )}
+                      {selectedVideo.isPublic ? t.videos.makePrivate : t.videos.makePublic}
+                    </Button>
+                  )}
+                  
+                  {(!showPublic && user && user.id === selectedVideo.userId) && (
+                    <Button
+                      key="publish-toggle"
+                      variant="outline"
+                      onClick={() => handlePublishToggle(selectedVideo)}
+                      disabled={updatingPublishId === selectedVideo.id}
+                      className={selectedVideo.isPublish ? "border-red-300 text-red-700 hover:bg-red-50" : "border-blue-300 text-blue-700 hover:bg-blue-50"}
+                    >
+                      {updatingPublishId === selectedVideo.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 mr-2 border border-current border-t-transparent" />
+                      ) : selectedVideo.isPublish ? (
+                        <Shield className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Rss className="h-4 w-4 mr-2" />
+                      )}
+                      {selectedVideo.isPublish ? t.publish.removeFromDiscovery : t.publish.publishToDiscovery}
+                    </Button>
                   )}
                   
                   {/* 分享按钮 - 所有情况都显示 */}
-                  <Button variant="outline" onClick={() => handleShare(selectedVideo)}>
+                  <Button key="share" variant="outline" onClick={() => handleShare(selectedVideo)}>
                     <Share className="h-4 w-4 mr-2" />
                     {t.videos.share}
                   </Button>
                   
                   {/* 复制链接按钮 - 所有情况都显示 */}
-                  <Button variant="outline" onClick={() => handleCopyShareLink(selectedVideo)}>
+                  <Button key="copy-link" variant="outline" onClick={() => handleCopyShareLink(selectedVideo)}>
                     <Copy className="h-4 w-4 mr-2" />
                     {t.videos.copyLink}
                   </Button>
                   
                   {/* 下载按钮 - 仅私有页面显示 */}
                   {!showPublic && (
-                    <Button variant="outline" onClick={() => handleDownload(selectedVideo)}>
+                    <Button key="download" variant="outline" onClick={() => handleDownload(selectedVideo)}>
                       <Download className="h-4 w-4 mr-2" />
                       {t.videos.download}
                     </Button>

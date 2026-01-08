@@ -90,7 +90,7 @@ export default function SharePage() {
       }
       
       const videoData = result.data;
-      if (!videoData.isPublic && (!user || user.$id !== videoData.userId)) {
+      if (!videoData.isPublic && (!user || user.id !== videoData.userId)) {
         setError(t.share.privateVideoError);
         return;
       }
@@ -163,7 +163,7 @@ export default function SharePage() {
   };
 
   const hasUserReacted = (emoji: string) => {
-    return user && reactions.some(r => r.emoji === emoji && r.userId === user.$id);
+    return user && reactions.some(r => r.emoji === emoji && r.userId === user.id);
   };
 
   const formatDuration = (seconds: number): string => {

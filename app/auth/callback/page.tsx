@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { handleOAuthCallbackAction, logOAuthActivityAction } from '@/app/actions/user-actions';
+import { handleOAuthCallbackAction } from '@/app/actions/user-actions';
 
 export default function OAuthCallbackPage() {
   const router = useRouter();
@@ -63,16 +63,7 @@ export default function OAuthCallbackPage() {
         if (result.success && result.data?.user) {
           console.log('OAuth callback successful, user:', result.data.user.id);
           
-          // 记录登录活动
-          try {
-            const activityResult = await logOAuthActivityAction(result.data.user.id, 'OAuth login');
-            if (activityResult.data?.warning) {
-              console.warn('Activity logging warning:', activityResult.data.warning);
-            }
-          } catch (activityError) {
-            console.warn('Failed to log OAuth activity:', activityError);
-            // 不阻止登录流程
-          }
+          // 注意：活动记录已在服务器端 /app/oauth/route.ts 中完成，避免重复记录
           
           setStatus('success');
           

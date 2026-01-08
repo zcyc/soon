@@ -123,12 +123,15 @@ export async function toggleVideoPrivacyAction(videoId: string): Promise<ActionR
       return { error: 'User not authenticated' };
     }
 
-    const updatedVideo = await toggleVideoPrivacy(videoId, user.$id);
+    const updatedVideo = await toggleVideoPrivacy(videoId, user.id);
+    
+    // 映射为兼容格式，确保包含所有字段（如 thumbnailUrl）
+    const mappedVideo = mapVideoRecord(updatedVideo);
     
     revalidatePath('/record');
     revalidatePath('/discover');
     
-    return { success: true, data: updatedVideo };
+    return { success: true, data: mappedVideo };
   } catch (error: any) {
     console.error('Toggle video privacy error:', error);
     return { error: error.message || 'Failed to update video privacy' };
@@ -143,12 +146,15 @@ export async function toggleVideoPublishStatusAction(videoId: string): Promise<A
       return { error: 'User not authenticated' };
     }
 
-    const updatedVideo = await toggleVideoPublishStatus(videoId, user.$id);
+    const updatedVideo = await toggleVideoPublishStatus(videoId, user.id);
+    
+    // 映射为兼容格式，确保包含所有字段（如 thumbnailUrl）
+    const mappedVideo = mapVideoRecord(updatedVideo);
     
     revalidatePath('/record');
     revalidatePath('/discover');
     
-    return { success: true, data: updatedVideo };
+    return { success: true, data: mappedVideo };
   } catch (error: any) {
     console.error('Toggle video publish status error:', error);
     return { error: error.message || 'Failed to update video publish status' };
@@ -183,7 +189,8 @@ export async function addReactionAction(videoId: string, emoji: string): Promise
       return { error: 'User not authenticated' };
     }
 
-    const reaction = await addReaction(videoId, user.$id, user.name, emoji);
+    const userName = user.name || user.email?.split('@')[0] || 'User';
+    const reaction = await addReaction(videoId, user.id, userName, emoji);
     
     revalidatePath(`/share/${videoId}`);
     
@@ -230,7 +237,7 @@ export async function updateVideoThumbnailAction(videoId: string, thumbnailUrl: 
       return { error: 'User not authenticated' };
     }
 
-    const updatedVideo = await updateVideoThumbnail(videoId, thumbnailUrl, user.$id);
+    const updatedVideo = await updateVideoThumbnail(videoId, thumbnailUrl, user.id);
     
     revalidatePath('/record');
     
