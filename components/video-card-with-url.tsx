@@ -32,7 +32,8 @@ export default function VideoCardWithUrl(props: VideoCardWithUrlProps) {
     
     const fetchUrl = async () => {
       try {
-        const result = await getFileUrlAction(props.video.fileId);
+        if (!props.video.file_id) return;
+        const result = await getFileUrlAction(props.video.file_id);
         if (isMounted && result.success && result.data?.url) {
           setVideoUrl(result.data.url);
         }

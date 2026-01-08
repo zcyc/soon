@@ -67,8 +67,8 @@ export default function SharePage() {
 
   useEffect(() => {
     // Increment view count when video loads
-    if (video) {
-      incrementVideoViewsAction(video.$id);
+    if (video && video.id) {
+      incrementVideoViewsAction(video.id);
     }
   }, [video]);
   
@@ -137,7 +137,8 @@ export default function SharePage() {
     }
 
     try {
-      const result = await addReactionAction(video.$id, emoji);
+      if (!video.id) return;
+      const result = await addReactionAction(video.id, emoji);
       if (result.success) {
         loadReactions();
       } else {
@@ -180,7 +181,8 @@ export default function SharePage() {
     if (!video) return;
     
     try {
-      const videoUrl = await getVideoUrl(video.fileId);
+      if (!video.file_id) return;
+      const videoUrl = await getVideoUrl(video.file_id);
       const link = document.createElement('a');
       link.href = videoUrl;
       link.download = `${video.title}.webm`;
@@ -229,10 +231,10 @@ export default function SharePage() {
           <Card className="mb-6">
             <CardContent className="p-0">
               <ShareVideoPlayer 
-                fileId={video.fileId}
+                fileId={video.file_id || ''}
                 subtitleUrl={subtitleUrl}
                 title={video.title}
-                thumbnailUrl={video.thumbnailUrl} // 传递缩略图 URL
+                thumbnailUrl={video.thumbnail_url || undefined} // 传递缩略图 URL
                 className="w-full rounded-t-lg"
               />
             </CardContent>
@@ -276,7 +278,7 @@ export default function SharePage() {
                   {formatDuration(video.duration)}
                 </div>
                 <div>
-                  {formatDate(video.$createdAt)}
+                  {formatDate(video.created_at)}
                 </div>
                 <Badge variant="secondary">{video.quality}</Badge>
                 {subtitleUrl && (

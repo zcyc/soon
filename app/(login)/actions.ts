@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { createAccount, login, logout, getCurrentUser, updatePassword } from '@/lib/auth/server-auth';
+import { createAccount, login, logout, getCurrentUser, updatePassword as updatePasswordAuth } from '@/lib/auth/server-auth';
 import { activityService, ActivityType } from '@/lib/services/activity-service';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
@@ -140,7 +140,7 @@ export async function updatePasswordAction(prevState: ActionState, formData: For
       return { error: 'User not authenticated' };
     }
 
-    await updatePassword(currentPassword, newPassword);
+    await updatePasswordAuth(currentPassword, newPassword);
     await logActivity(user.id, ActivityType.UPDATE_PASSWORD);
 
     return { success: 'Password updated successfully.' };

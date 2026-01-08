@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Github, Chrome } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-import { signIn, signUp } from './actions';
+import { signIn, signUp, ActionState } from './actions';
 import { useAuth } from '@/contexts/auth-context';
 
 interface LoginFormProps {
@@ -35,7 +35,7 @@ export function LoginForm({ mode }: LoginFormProps) {
 
     try {
       if (isSignUp) {
-        const result = await signUp(new FormData(e.target as HTMLFormElement));
+        const result = await signUp({} as ActionState, new FormData(e.target as HTMLFormElement));
         if (result.error) {
           setError(result.error);
         } else {
@@ -43,7 +43,7 @@ export function LoginForm({ mode }: LoginFormProps) {
           router.push('/record');
         }
       } else {
-        const result = await signIn(new FormData(e.target as HTMLFormElement));
+        const result = await signIn({} as ActionState, new FormData(e.target as HTMLFormElement));
         if (result.error) {
           setError(result.error);
         } else {
@@ -86,7 +86,7 @@ export function LoginForm({ mode }: LoginFormProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <div className="space-y-2">
-                <Label htmlFor="name">{t.auth.name}</Label>
+                <Label htmlFor="name">{t.auth.fullName}</Label>
                 <Input
                   id="name"
                   name="name"
@@ -178,7 +178,7 @@ export function LoginForm({ mode }: LoginFormProps) {
               </>
             ) : (
               <>
-                {t.auth.dontHaveAccount}{' '}
+                {t.auth.newToSoon}{' '}
                 <button
                   type="button"
                   onClick={() => setIsSignUp(true)}

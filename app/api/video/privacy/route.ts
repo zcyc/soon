@@ -24,12 +24,19 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Use the existing toggleVideoPrivacy method
-    const updatedVideo = await toggleVideoPrivacy(videoId, currentUser.$id);
+    if (!currentUser.id) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const updatedVideo = await toggleVideoPrivacy(videoId, currentUser.id);
 
     return NextResponse.json({
       success: true,
       video: updatedVideo,
-      message: updatedVideo.isPublic ? 'Video is now public' : 'Video is now private'
+      message: updatedVideo.is_public ? 'Video is now public' : 'Video is now private'
     });
 
   } catch (error: any) {

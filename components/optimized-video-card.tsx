@@ -117,7 +117,7 @@ export default function OptimizedVideoCard({
           </h4>
           
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="truncate">{formatDate(video.$createdAt)}</span>
+            <span className="truncate">{formatDate(video.created_at)}</span>
             <Badge variant="secondary" className="text-xs px-2 py-0.5">
               {video.quality}
             </Badge>
