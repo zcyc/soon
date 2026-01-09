@@ -5,6 +5,7 @@ import { activityService, ActivityType } from '@/lib/services/activity-service';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
+import { registrationConfig } from '@/lib/config';
 
 export type ActionResult = {
   success?: boolean;
@@ -75,6 +76,11 @@ export async function loginAction(email: string, password: string): Promise<Acti
 
 // Register user
 export async function registerAction(email: string, password: string, name: string): Promise<ActionResult> {
+  // 检查注册是否被禁用
+  if (!registrationConfig.enableRegistration) {
+    return { error: '用户注册功能已被禁用' };
+  }
+
   try {
     // 创建账户
     await createAccount(email, password, name);

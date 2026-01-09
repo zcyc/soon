@@ -5,6 +5,7 @@ import { createAccount, login, logout, getCurrentUser, updatePassword as updateP
 import { activityService, ActivityType } from '@/lib/services/activity-service';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
+import { registrationConfig } from '@/lib/config';
 
 export type ActionState = {
   error?: string;
@@ -78,6 +79,11 @@ const signUpSchema = z.object({
 });
 
 export async function signUpAction(prevState: ActionState, formData: FormData) {
+  // 检查注册是否被禁用
+  if (!registrationConfig.enableRegistration) {
+    return { error: '用户注册功能已被禁用' };
+  }
+
   const result = signUpSchema.safeParse(Object.fromEntries(formData));
   if (!result.success) {
     return { error: result.error.issues[0].message };
