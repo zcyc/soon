@@ -9,9 +9,12 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
+# Nuxt
+/.nuxt/
+/.output/
+/dist/
+**/.nitro/
+**/.output/
 
 # production
 /build
@@ -31,11 +34,14 @@ yarn-error.log*
 # vercel
 .vercel
 
-# typescript
+# TypeScript
 *.tsbuildinfo
-next-env.d.ts
+*.d.ts.map
 .vscode
 
 # Docker
 postgres_data/
 .env*.local
+.dev.vars
+apps/api/.dev.vars
+.wrangler/

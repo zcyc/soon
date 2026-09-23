@@ -1,417 +1,57 @@
-# SOON - Screen Recording Made Simple
+# SOON
 
-**SOON** is a modern, web-based screen recording application built with Next.js that allows users to easily record their screen, camera, and audio with professional-quality output. Record, manage, and share your videos with a beautiful, intuitive interface.
+SOON is a browser screen recorder. The interface is Nuxt 4 + Nuxt UI and is deployed to Vercel. A standalone Nitro API Worker runs on Cloudflare and uses D1 for video metadata and R2 for media files. Supabase Auth remains the identity provider; D1 and R2 do not provide sign-in or OAuth.
 
-## 🎬 Features
+## Local development
 
-### Core Recording Features
-- **Multi-source Recording**: Record screen, camera, or both simultaneously
-- **High Quality Output**: Support for 720p and 1080p recording with customizable bitrates
-- **Audio Recording**: Capture system audio, microphone, or both
-- **Flexible Screen Sources**: Record entire screen, specific windows, or browser tabs
-- **Real-time Subtitles**: AI-powered speech recognition with subtitle generation (SRT/VTT export)
-- **Recording Controls**: Pause/resume functionality with real-time duration tracking
+1. Install Node.js 20.19 or newer, then run `npm install`.
+2. Copy `.env.example` to `.env` and set the Nuxt public API URL and Supabase project values.
+3. Create the Cloudflare D1 database and R2 bucket described below. Copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars` and set its values.
+4. Apply the local D1 schema with `npm run db:migrate:local`.
+5. Run `npm run dev:api` and `npm run dev` in separate terminals. Nuxt listens on port 3000 and Nitro on port 8787.
 
-### Video Management
-- **Video Gallery**: Organized grid and list views of all recordings
-- **Video Player**: Custom video player with subtitle support
-- **Public/Private Videos**: Control video visibility and sharing permissions
-- **Video Metadata**: Track views, duration, quality, and creation dates
-- **Search & Filter**: Find videos by title, quality, or other attributes
+Screen capture requires HTTPS except on localhost. OAuth providers must allow `http://localhost:3000/auth/callback` as a Supabase redirect URL.
 
-### Sharing & Collaboration
-- **Public Sharing**: Generate shareable links for public videos
-- **Video Reactions**: Emoji-based reaction system for viewer engagement
-- **Download Options**: Export videos in WebM format
-- **Responsive Player**: Optimized video display across all devices
+## Cloudflare API setup
 
-### User Experience
-- **Authentication System**: Secure user registration and login with Supabase
-- **Multi-language Support**: Built-in internationalization (English/Chinese)
-- **Theme Support**: Light and dark mode with customizable themes
-- **Responsive Design**: Mobile-first design that works on all devices
-- **Real-time Notifications**: Toast notifications for user feedback
+From `apps/api`, create the resources:
 
-## 🛠️ Tech Stack
-
-- **Framework**: [Next.js 15](https://nextjs.org/) with App Router and Turbopack
-- **UI Library**: [shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/)
-- **Backend Services**: [Supabase](https://supabase.com/) for authentication, database, and file storage
-- **Recording API**: Web APIs (MediaRecorder, Screen Capture, getUserMedia)
-- **Styling**: Tailwind CSS 4.0 with CSS variables and theme system
-- **TypeScript**: Full type safety throughout the application
-- **Icons**: [Lucide React](https://lucide.dev/) icon library
-
-## 🏗️ Architecture Overview
-
-SOON uses Supabase as the primary backend service:
-- **Supabase**: Authentication, database operations, video storage, metadata management
-- **Next.js**: Frontend and API routes
-- **Client-side APIs**: Web recording APIs for media capture
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Node.js 18+** installed
-- **Supabase project** created and accessible
-- **Git** for version control
-
-### Step 1: Supabase Setup
-
-#### 1. Create Supabase Project
-
-1. Visit [Supabase Dashboard](https://supabase.com)
-2. Create an account or sign in
-3. Click "New Project"
-4. Project Name: `SOON Screen Recorder`
-5. Choose a strong database password
-6. Select a region close to your users
-
-#### 2. Configure Authentication
-
-1. Navigate to **Authentication > Providers**
-2. Enable Auth Methods:
-   - ✅ Email (enabled by default)
-   - ✅ GitHub (optional, for OAuth)
-   - ✅ Google (optional, for OAuth)
-3. Configure OAuth Providers (if needed):
-   - Add OAuth credentials from GitHub/Google
-   - Set redirect URLs: `https://your-project.supabase.co/auth/v1/callback`
-
-#### 3. Create Database Tables
-
-In Supabase SQL Editor, execute the following SQL:
-
-```sql
--- Create videos table
-CREATE TABLE videos (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  title TEXT NOT NULL,
-  file_id TEXT NOT NULL,
-  quality TEXT,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  user_name TEXT NOT NULL,
-  duration NUMERIC DEFAULT 0,
-  views INTEGER DEFAULT 0,
-  is_public BOOLEAN DEFAULT false,
-  is_publish BOOLEAN DEFAULT false,
-  thumbnail_url TEXT,
-  subtitle_file_id TEXT
-);
-
--- Create reactions table
-CREATE TABLE reactions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  video_id UUID NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  user_name TEXT NOT NULL,
-  emoji TEXT NOT NULL,
-  UNIQUE(video_id, user_id, emoji)
-);
-
--- Create activity_logs table
-CREATE TABLE activity_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  action TEXT NOT NULL,
-  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  ip_address TEXT,
-  metadata TEXT,
-  user_name TEXT
-);
-
--- Create indexes
-CREATE INDEX idx_videos_user_id ON videos(user_id);
-CREATE INDEX idx_videos_is_public ON videos(is_public);
-CREATE INDEX idx_videos_is_publish ON videos(is_publish);
-CREATE INDEX idx_reactions_video_id ON reactions(video_id);
-CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id);
+```sh
+npx wrangler d1 create soon
+npx wrangler r2 bucket create soon-videos
 ```
 
-#### 4. Row Level Security (RLS) - Optional
+Put the D1 ID returned by Wrangler in `apps/api/wrangler.jsonc`. Set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `R2_ACCOUNT_ID`, `R2_BUCKET_NAME`, and `CORS_ORIGINS` there. Replace the Vercel origin with the exact site origin (no trailing slash).
 
-**Note**: Since this project uses Server Actions with Secret Key for all database operations, **RLS is optional**. All permission checks are done in Server Actions.
+Create an R2 S3 access key, then add the credentials as Worker secrets:
 
-If you want to add RLS for additional security in production:
-
-```sql
--- Enable RLS
-ALTER TABLE videos ENABLE ROW LEVEL SECURITY;
-ALTER TABLE reactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
-
--- Videos policies
-CREATE POLICY "Users can view public videos" ON videos
-  FOR SELECT USING (is_public = true AND is_publish = true);
-
-CREATE POLICY "Users can view their own videos" ON videos
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own videos" ON videos
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own videos" ON videos
-  FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own videos" ON videos
-  FOR DELETE USING (auth.uid() = user_id);
-
--- Reactions policies
-CREATE POLICY "Anyone can view reactions" ON reactions
-  FOR SELECT USING (true);
-
-CREATE POLICY "Authenticated users can add reactions" ON reactions
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own reactions" ON reactions
-  FOR DELETE USING (auth.uid() = user_id);
-
--- Activity logs policies
-CREATE POLICY "Users can insert their own activity logs" ON activity_logs
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+```sh
+npx wrangler secret put R2_ACCESS_KEY_ID
+npx wrangler secret put R2_SECRET_ACCESS_KEY
+npx wrangler d1 migrations apply soon --remote
+npx wrangler r2 bucket cors set soon-videos --file r2-cors.json
+npm run deploy
 ```
 
-#### 5. Create Storage Bucket
+The R2 key is used only by the Worker to sign temporary upload and playback URLs. The browser never receives the key. Update the origins in `r2-cors.json` before applying it; the multipart uploader reads each R2 part's `ETag`, so keep `ETag` in `exposeHeaders`. The API also checks the Vercel origin against `CORS_ORIGINS`.
 
-1. Navigate to **Storage** in Supabase Dashboard
-2. Click "New bucket"
-3. Bucket Name: `videos`
-4. Set as Public (for public video access)
-5. File size limit: 1000MB (or your preference)
-6. Allowed MIME types: `video/webm,video/mp4,video/quicktime,video/x-msvideo`
+## Vercel frontend
 
-#### 6. Get API Keys
+Create a Vercel project from the repository root. Use `npm run build` as the build command; Vercel detects Nuxt and selects its Nitro Vercel output. Set these environment variables for Preview and Production:
 
-1. Navigate to **Project Settings > API**
-2. Copy the following:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **Publishable key** → `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-   - **Secret key** → `SUPABASE_SECRET_KEY` (⚠️ Keep secret, server-side only!)
-
-### Step 2: Application Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd soon-screen-recorder
-   npm install
-   ```
-
-2. **Environment Configuration**
-
-   Create a `.env.local` file in the root directory:
-   ```env
-   # Supabase Configuration
-   NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="your-publishable-key"
-   SUPABASE_SECRET_KEY="your-secret-key"
-   
-   # Storage Bucket
-   NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET="videos"
-   
-   # Base URL
-   NEXT_PUBLIC_BASE_URL="http://localhost:3000"
-   ```
-
-3. **Start Development Server**
-   ```bash
-   npm run dev
-   ```
-   
-   Open [http://localhost:3000](http://localhost:3000) to see the application.
-
-## 📝 Usage
-
-### Recording Videos
-1. **Navigate to Dashboard**: Log in and go to the dashboard
-2. **Configure Recording**: Choose your recording source (screen/camera/both)
-3. **Set Quality**: Select between 720p and 1080p output
-4. **Enable Features**: Toggle audio recording and subtitles as needed
-5. **Start Recording**: Click the record button and grant necessary permissions
-6. **Control Recording**: Use pause/resume controls during recording
-7. **Save & Share**: Add a title, set privacy, and upload your video
-
-### Managing Videos
-- **View Library**: Browse all your recordings in the dashboard
-- **Share Videos**: Copy share links or use the built-in sharing features
-- **Download Videos**: Export your recordings in WebM format
-- **Delete Videos**: Remove unwanted recordings from your library
-
-### Advanced Features
-- **Subtitle Export**: Download generated subtitles in SRT or VTT format
-- **Public Gallery**: Browse public videos from other users
-- **Reactions**: Add emoji reactions to videos you watch
-- **Responsive Viewing**: Videos automatically adapt to container sizes
-
-## 🧪 Testing
-
-### Basic Functionality Tests
-
-1. **Homepage Loading**
-   - [ ] Visit http://localhost:3000
-   - [ ] Page loads without errors
-
-2. **User Registration**
-   - [ ] Visit `/sign-up`
-   - [ ] Fill form and register
-   - [ ] Auto-login after registration
-
-3. **User Login**
-   - [ ] Visit `/sign-in`
-   - [ ] Login with registered account
-   - [ ] Redirect after successful login
-
-4. **Video Upload**
-   - [ ] Login and visit `/dashboard`
-   - [ ] Record or upload video
-   - [ ] Video successfully uploaded to Supabase Storage
-
-5. **Video Management**
-   - [ ] View video list in Dashboard
-   - [ ] Play videos
-   - [ ] Delete videos
-   - [ ] Toggle privacy settings
-   - [ ] Toggle publish status
-
-6. **Public Features**
-   - [ ] Visit `/discover` to see public videos
-   - [ ] Visit `/share/[videoId]` for video sharing
-   - [ ] Add reactions to videos
-
-### Common Issues & Troubleshooting
-
-#### Environment Variables Not Set
-
-**Error**: `SUPABASE_SECRET_KEY is required for admin operations`
-
-**Solution**:
-1. Check if `.env.local` file exists
-2. Verify all required environment variables are set
-3. Ensure you're using Publishable key and Secret key (not legacy keys)
-4. Restart development server
-
-#### Database Tables Don't Exist
-
-**Error**: `relation "videos" does not exist`
-
-**Solution**:
-1. Execute the SQL statements in Supabase SQL Editor
-2. Verify tables were created successfully
-
-#### Storage Bucket Not Found
-
-**Error**: `Bucket not found`
-
-**Solution**:
-1. Create storage bucket in Supabase Dashboard > Storage
-2. Ensure bucket name matches `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET`
-
-#### OAuth Callback Failed
-
-**Error**: `OAuth callback failed`
-
-**Solution**:
-1. Check Supabase Dashboard > Authentication > URL Configuration
-2. Verify callback URL is correctly configured
-3. Check OAuth provider (GitHub/Google) callback URL settings
-
-## 🔒 Security
-
-### Server Actions & Row Level Security
-
-This project uses **Server Actions** for all database operations with **Secret Key**, which means:
-
-- ✅ All database operations are executed server-side
-- ✅ Permission validation is done in Server Actions
-- ✅ RLS is optional (but recommended for production)
-
-### Security Best Practices
-
-1. **Secret Key Security**
-   - **Must** only be used server-side
-   - **Never** expose to client (browser)
-   - Store in environment variables, never commit to repository
-
-2. **Permission Validation**
-   - Verify user permissions in each Server Action
-   - Example: Check if user owns the resource before modifying
-
-3. **Production Recommendations**
-   - Use RLS as an additional security layer
-   - Implement defense in depth strategy
-   - Regular security audits
-
-## 🎨 Theming
-
-The application includes a comprehensive theming system supporting light and dark modes. When developing:
-
-- Use CSS custom properties like `var(--color-primary)` 
-- Utilize Tailwind theme classes like `bg-primary text-primary-foreground`
-- Avoid hardcoded colors to ensure proper theme switching
-- Customize themes in `contexts/theme-context.tsx`
-
-## 📁 Project Structure
-
-```
-├── app/                    # Next.js app directory
-│   ├── (login)/           # Authentication pages
-│   ├── dashboard/         # Main recording interface
-│   ├── discover/          # Public video gallery
-│   ├── share/[videoId]/   # Public video sharing
-│   └── api/               # API routes
-├── components/            # Reusable UI components
-│   ├── ui/               # shadcn/ui components
-│   ├── screen-recorder.tsx # Main recording component
-│   ├── video-gallery.tsx  # Video management interface
-│   └── header.tsx        # Navigation header
-├── contexts/             # React contexts
-├── lib/                  # Utility libraries
-│   ├── auth/            # Authentication services
-│   ├── services/        # Business logic services
-│   ├── database.ts       # Database type definitions
-│   ├── supabase.ts      # Supabase client configuration
-│   ├── supabase-server.ts # Supabase server configuration
-│   └── config.ts        # App configuration
-└── public/              # Static assets
+```env
+NUXT_PUBLIC_API_BASE=https://YOUR_API_WORKER.workers.dev
+NUXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NUXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+NUXT_PUBLIC_RECORDING_MAX_DURATION_SECONDS=120
 ```
 
-## 🔧 Development Scripts
+Add the Vercel deployment domain and any custom domain to Supabase's allowed redirect URLs as `/auth/callback`, `CORS_ORIGINS`, and the R2 CORS origins.
 
-- `npm run dev` - Start development server with Turbopack
-- `npm run build` - Build for production  
-- `npm run start` - Start production server
+## Existing account and video data
 
-## 🌐 Browser Support
+Supabase Auth accounts stay in the existing Supabase project. The D1 schema and follow-up changes are in `apps/api/migrations/`; apply all migrations before deploying the API. Existing video rows and storage objects are not copied automatically: export the old `videos`, `reactions`, and `activity_logs` rows into the new schema, and copy each old media object into R2 before switching traffic if those recordings must remain available. Keep the old Supabase database and storage bucket until that one-time migration is verified.
 
-- **Chrome/Edge**: Full support with optimal performance
-- **Firefox**: Full support with slightly reduced performance
-- **Safari**: Partial support (some recording features limited)
+## Browser support
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📧 Support
-
-For support and questions:
-- Create an issue on GitHub
-- Join our community discussions
-- Check the troubleshooting section above
-
----
-
-Built with ❤️ using Next.js and Supabase
+The app builds for ES2020 and Safari 15. Screen recording requires a secure context and browser support for `getDisplayMedia`; camera and microphone access use `getUserMedia`. The recorder checks these APIs and `MediaRecorder.isTypeSupported`, chooses a supported WebM or MP4 format, and presents an explanation when the selected browser cannot capture. Speech subtitles use browser speech recognition when available and can be exported as SRT or VTT. Screen sharing, speech recognition, and system-audio availability vary by browser and operating system. Local video uploads support files up to 5 GB; files larger than 64 MiB upload to R2 in multipart chunks.

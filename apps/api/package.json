@@ -1,0 +1,26 @@
+{
+  "name": "@soon/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nitropack dev",
+    "build": "nitropack build --preset=cloudflare-module",
+    "types:generate": "WRANGLER_WRITE_LOGS=false wrangler types worker-configuration.d.ts --include-runtime=false --strict-vars=false",
+    "prepare:types": "nitropack prepare && npm run types:generate",
+    "typecheck": "npm run prepare:types && tsc --noEmit -p tsconfig.json",
+    "deploy": "npm run build && wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply soon --local",
+    "db:migrate:remote": "wrangler d1 migrations apply soon --remote"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.800.0",
+    "@aws-sdk/s3-request-presigner": "^3.800.0",
+    "nitropack": "^2.13.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260923.1",
+    "@types/node": "^22.20.4",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.37.0"
+  }
+}

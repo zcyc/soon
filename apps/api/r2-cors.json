@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": ["http://localhost:3000", "https://YOUR_VERCEL_DOMAIN"],
+        "methods": ["GET", "HEAD", "PUT"],
+        "headers": ["content-type", "range", "if-range"]
+      },
+      "exposeHeaders": ["ETag", "Content-Length", "Content-Range", "Accept-Ranges"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

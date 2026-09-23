@@ -1,0 +1,16 @@
+{
+  "extends": "./.nitro/types/tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["@cloudflare/workers-types", "node"]
+  },
+  "include": [
+    ".nitro/types/nitro.d.ts",
+    "server/**/*.ts",
+    "worker-configuration.d.ts",
+    "worker-secrets.d.ts",
+    "nitro.config.ts"
+  ]
+}
