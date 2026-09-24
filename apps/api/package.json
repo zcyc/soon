@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "nitropack dev",
+    "dev": "nitropack dev --port 8787",
     "build": "nitropack build --preset=cloudflare-module",
     "types:generate": "WRANGLER_WRITE_LOGS=false wrangler types worker-configuration.d.ts --include-runtime=false --strict-vars=false",
     "prepare:types": "nitropack prepare && npm run types:generate",
