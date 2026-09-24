@@ -282,15 +282,16 @@ async function startRecording() {
       error.value = t.value.recording.startFailed
       stopRecording()
     }, { once: true })
-    if (preview.value && source.value === 'screen') {
-      preview.value.srcObject = stream
-      await preview.value.play().catch(() => undefined)
-    }
     mediaRecorder.start(1000)
     recording.value = true
     paused.value = false
     seconds.value = 0
     status.value = t.value.recording.recordingStatus
+    await nextTick()
+    if (preview.value && source.value === 'screen') {
+      preview.value.srcObject = stream
+      await preview.value.play().catch(() => undefined)
+    }
     timer = setInterval(() => {
       if (paused.value) return
       seconds.value += 1
