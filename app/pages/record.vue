@@ -7,7 +7,7 @@ const galleryKey = ref(0)
 <template>
   <div class="mx-auto max-w-7xl space-y-10 px-4 py-8 sm:px-6">
     <section v-if="user" class="space-y-1">
-      <h1 class="text-3xl font-semibold text-highlighted">{{ t.dashboard.welcomeBack }}, {{ user.user_metadata?.name || user.email }}!</h1>
+      <h1 class="text-3xl font-semibold text-highlighted">{{ t.dashboard.welcomeBack }}, {{ user.name }}!</h1>
       <p class="text-muted">{{ t.dashboard.welcomeDescription }}</p>
     </section>
 

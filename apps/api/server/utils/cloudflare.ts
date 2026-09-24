@@ -1,4 +1,5 @@
 import { createError, readBody, type H3Event } from 'h3'
+import { verifyAccessToken } from './auth'
 
 export interface VideoRow {
   id: string
@@ -38,8 +39,7 @@ export async function readObjectBody(event: H3Event): Promise<Record<string, unk
 
 export interface CurrentUser {
   id: string
-  email?: string
-  user_metadata?: Record<string, unknown>
+  name: string
 }
 
 export function getCurrentUser(event: H3Event): Promise<CurrentUser>
@@ -51,19 +51,15 @@ export async function getCurrentUser(event: H3Event, optional = false): Promise<
     throw createError({ statusCode: 401, statusMessage: 'Sign in is required' })
   }
 
-  const env = getEnv(event)
-  const response = await fetch(`${env.SUPABASE_URL.replace(/\/$/, '')}/auth/v1/user`, {
-    headers: {
-      apikey: env.SUPABASE_ANON_KEY,
-      authorization
-    }
-  })
-  if (!response.ok) {
+  const token = authorization.slice(7).trim()
+  if (!token) {
     if (optional) return null
     throw createError({ statusCode: 401, statusMessage: 'Your session has expired' })
   }
 
-  return await response.json() as CurrentUser
+  const user = await verifyAccessToken(getEnv(event), token)
+  if (!user && !optional) throw createError({ statusCode: 401, statusMessage: 'Your session has expired' })
+  return user
 }
 
 export function mapVideo(row: VideoRow) {

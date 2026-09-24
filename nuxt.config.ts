@@ -26,8 +26,6 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: '',
-      supabaseUrl: '',
-      supabaseAnonKey: '',
       recordingMaxDurationSeconds: 120
     }
   },

@@ -1,19 +1,20 @@
 import type { NitroFetchOptions, NitroFetchRequest } from 'nitropack'
+import { getApiBaseURL, isUnauthorizedError, useAuth } from './useAuth'
 
 export function useApi() {
-  const config = useRuntimeConfig()
-  const configuredBase = config.public.apiBase || (import.meta.dev ? 'http://localhost:8787' : '')
-  if (!configuredBase) throw new Error('NUXT_PUBLIC_API_BASE must be configured for production')
-  const baseURL = String(configuredBase).replace(/\/$/, '')
+  const baseURL = getApiBaseURL()
+  const auth = useAuth()
 
   async function apiFetch<T>(path: string, options: NitroFetchOptions<NitroFetchRequest> = {}): Promise<T> {
-    const { data } = await useSupabase().auth.getSession()
     const headers = new Headers(options.headers as HeadersInit | undefined)
-    if (data.session?.access_token) headers.set('Authorization', `Bearer ${data.session.access_token}`)
-    return await $fetch<T>(`${baseURL}/api/${path.replace(/^\//, '')}`, {
-      ...options,
-      headers
-    })
+    const token = auth.accessToken.value
+    if (token) headers.set('Authorization', `Bearer ${token}`)
+    try {
+      return await $fetch<T>(`${baseURL}/api/${path.replace(/^\//, '')}`, { ...options, headers })
+    } catch (cause) {
+      if (token && auth.accessToken.value === token && isUnauthorizedError(cause)) auth.signOut()
+      throw cause
+    }
   }
 
   return { apiFetch, baseURL }

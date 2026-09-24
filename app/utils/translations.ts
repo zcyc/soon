@@ -169,39 +169,11 @@ export interface Translations {
   
   // Authentication
   auth: {
-    signInToSoon: string;
-    createSoonAccount: string;
-    welcomeBack: string;
+    account: string;
     signInDescription: string;
-    signUpDescription: string;
-    fullName: string;
-    email: string;
     password: string;
-    enterFullName: string;
-    enterEmail: string;
-    enterPassword: string;
     signIn: string;
-    signUp: string;
-    loading: string;
-    orContinueWith: string;
-    continueWithGitHub: string;
-    continueWithGoogle: string;
-    connectingToGitHub: string;
-    connectingToGoogle: string;
-    newToSoon: string;
-    alreadyHaveAccount: string;
-    createAccount: string;
-    signInToExistingAccount: string;
-    nameRequired: string;
-    errorOccurred: string;
-    githubLoginFailed: string;
-    githubAuthCancelled: string;
     authenticationFailed: string;
-    registrationDisabled: string;
-    authenticationFailedClosing: string;
-    loginSuccessfulClosing: string;
-    emailVerificationRequired: string;
-
   };
   
   // Devices
@@ -269,7 +241,6 @@ export interface Translations {
     andMore: string;
     signInToReact: string;
     signIn: string;
-    signUp: string;
     like: string;
     love: string;
     happy: string;
@@ -573,39 +544,11 @@ export const translations: Record<Locale, Translations> = {
       exportVtt: 'Export VTT',
     },
     auth: {
-      signInToSoon: 'Sign in to SOON',
-      createSoonAccount: 'Create your SOON account',
-      welcomeBack: 'Welcome back! Please sign in to continue.',
-      signInDescription: 'Welcome back! Please sign in to continue.',
-      signUpDescription: 'Start recording and sharing your screen instantly.',
-      fullName: 'Full Name',
-      email: 'Email',
+      account: 'Account',
+      signInDescription: 'Sign in with the account configured for this deployment.',
       password: 'Password',
-      enterFullName: 'Enter your full name',
-      enterEmail: 'Enter your email',
-      enterPassword: 'Enter your password',
       signIn: 'Sign in',
-      signUp: 'Sign up',
-      loading: 'Loading...',
-      orContinueWith: 'Or continue with',
-      continueWithGitHub: 'Continue with GitHub',
-      continueWithGoogle: 'Continue with Google',
-      connectingToGitHub: 'Connecting to GitHub...',
-      connectingToGoogle: 'Connecting to Google...',
-      newToSoon: 'New to SOON?',
-      alreadyHaveAccount: 'Already have an account?',
-      createAccount: 'Create an account',
-      signInToExistingAccount: 'Sign in to existing account',
-      nameRequired: 'Name is required',
-      errorOccurred: 'An error occurred',
-      githubLoginFailed: 'GitHub login failed',
-      githubAuthCancelled: 'GitHub authentication was cancelled',
-      authenticationFailed: 'Authentication failed. Please try again.',
-      registrationDisabled: 'User registration is currently disabled',
-      authenticationFailedClosing: 'Authentication failed, closing window...',
-      loginSuccessfulClosing: 'Login successful, closing window...',
-      emailVerificationRequired: 'Check your email to verify your account before signing in.',
-
+      authenticationFailed: 'Sign-in failed. Check the configured account and password, then try again.',
     },
     devices: {
       title: 'Devices',
@@ -669,7 +612,6 @@ export const translations: Record<Locale, Translations> = {
       andMore: 'and {count} more...',
       signInToReact: 'Sign in to give feedback on this video',
       signIn: 'Sign In',
-      signUp: 'Sign Up',
       like: 'Like',
       love: 'Love',
       happy: 'Happy',
@@ -953,39 +895,11 @@ export const translations: Record<Locale, Translations> = {
       exportVtt: '导出 VTT',
     },
     auth: {
-      signInToSoon: '登录SOON',
-      createSoonAccount: '创建您的SOON账户',
-      welcomeBack: '欢迎回来！请登录以继续。',
-      signInDescription: '欢迎回来！请登录以继续。',
-      signUpDescription: '立即开始录制和分享您的屏幕。',
-      fullName: '全名',
-      email: '邮箱',
+      account: '账号',
+      signInDescription: '使用部署环境配置的账号登录。',
       password: '密码',
-      enterFullName: '请输入您的全名',
-      enterEmail: '请输入您的邮箱',
-      enterPassword: '请输入您的密码',
       signIn: '登录',
-      signUp: '注册',
-      loading: '加载中...',
-      orContinueWith: '或继续使用',
-      continueWithGitHub: '使用 GitHub 继续',
-      continueWithGoogle: '使用 Google 继续',
-      connectingToGitHub: '正在连接到 GitHub...',
-      connectingToGoogle: '正在连接到 Google...',
-      newToSoon: '初次使用SOON?',
-      alreadyHaveAccount: '已有账户？',
-      createAccount: '创建账户',
-      signInToExistingAccount: '登录现有账户',
-      nameRequired: '姓名为必填项',
-      errorOccurred: '发生错误',
-      githubLoginFailed: 'GitHub 登录失败',
-      githubAuthCancelled: 'GitHub 认证已取消',
-      authenticationFailed: '认证失败，请重试。',
-      registrationDisabled: '用户注册功能已被禁用',
-      authenticationFailedClosing: '认证失败，正在关闭窗口...',
-      loginSuccessfulClosing: '登录成功，正在关闭窗口...',
-      emailVerificationRequired: '请检查邮箱并完成验证，然后再登录。',
-
+      authenticationFailed: '登录失败，请检查环境配置的账号和密码后重试。',
     },
     devices: {
       title: '设备',
@@ -1049,7 +963,6 @@ export const translations: Record<Locale, Translations> = {
       andMore: '还有 {count} 个...',
       signInToReact: '登录以对此视频给出反馈',
       signIn: '登录',
-      signUp: '注册',
       like: '点赞',
       love: '喜爱',
       happy: '开心',

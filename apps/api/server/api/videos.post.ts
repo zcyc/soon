@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const id = crypto.randomUUID()
-  const userName = String(user.user_metadata?.name || user.email?.split('@')[0] || 'User').slice(0, 100)
+  const userName = user.name.slice(0, 100)
   await env.DB.prepare(`
     INSERT INTO videos (id, title, file_id, quality, user_id, user_name, duration, is_public, is_publish, thumbnail_file_id)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

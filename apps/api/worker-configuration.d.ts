@@ -3,8 +3,6 @@
 interface __BaseEnv_Env {
 	MEDIA: R2Bucket;
 	DB: D1Database;
-	SUPABASE_URL: string;
-	SUPABASE_ANON_KEY: string;
 	R2_ACCOUNT_ID: string;
 	R2_BUCKET_NAME: string;
 	CORS_ORIGINS: string;
@@ -20,5 +18,5 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "SUPABASE_URL" | "SUPABASE_ANON_KEY" | "R2_ACCOUNT_ID" | "R2_BUCKET_NAME" | "CORS_ORIGINS">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "R2_ACCOUNT_ID" | "R2_BUCKET_NAME" | "CORS_ORIGINS">> {}
 }

@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     return { active: false }
   }
 
-  const userName = String(user.user_metadata?.name || user.email?.split('@')[0] || 'User').slice(0, 100)
+  const userName = user.name.slice(0, 100)
   await DB.prepare('INSERT OR IGNORE INTO reactions (id, video_id, user_id, user_name, emoji) VALUES (?, ?, ?, ?, ?)')
     .bind(crypto.randomUUID(), id || '', user.id, userName, emoji).run()
   return { active: true }

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 const { t, locale, setLocale } = useI18n()
-const user = useCurrentUser()
+const auth = useAuth()
+const user = auth.user
 const loggingOut = ref(false)
 
 async function signOut() {
   loggingOut.value = true
-  await useSupabase().auth.signOut()
-  user.value = null
+  auth.signOut()
   loggingOut.value = false
   await navigateTo('/sign-in')
 }

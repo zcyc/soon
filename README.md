@@ -1,16 +1,18 @@
 # SOON
 
-SOON is a browser screen recorder. The interface is Nuxt 4 + Nuxt UI and is deployed to Vercel. A standalone Nitro API Worker runs on Cloudflare and uses D1 for video metadata and R2 for media files. Supabase Auth remains the identity provider; D1 and R2 do not provide sign-in or OAuth.
+SOON is a browser screen recorder. The Nuxt 4 + Nuxt UI frontend is deployed to Vercel. A Nitro API Worker on Cloudflare uses D1 for video metadata and R2 for video files. Authentication uses one account and password configured as Cloudflare Worker secrets; there is no public registration or OAuth provider.
 
 ## Local development
 
-1. Install Node.js 20.19 or newer, then run `npm install`.
-2. Copy `.env.example` to `.env` and set the Nuxt public API URL and Supabase project values.
-3. Create the Cloudflare D1 database and R2 bucket described below. Copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars` and set its values.
+1. Install Node.js 20.19 or newer and run `npm install`.
+2. Copy `.env.example` to `.env`; `NUXT_PUBLIC_API_BASE` defaults to the local API.
+3. Create the D1 database and R2 bucket below. Copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars` and configure the account, password, session secret, and R2 credentials.
 4. Apply the local D1 schema with `npm run db:migrate:local`.
 5. Run `npm run dev:api` and `npm run dev` in separate terminals. Nuxt listens on port 3000 and Nitro on port 8787.
 
-Screen capture requires HTTPS except on localhost. OAuth providers must allow `http://localhost:3000/auth/callback` as a Supabase redirect URL.
+Use a password of at least 12 characters and a random session secret of at least 32 bytes. Keep both in `apps/api/.dev.vars` locally and Cloudflare Worker secrets in deployment. Never put them in Nuxt `NUXT_PUBLIC_*` variables.
+
+Screen capture requires HTTPS except on localhost.
 
 ## Cloudflare API setup
 
@@ -21,11 +23,14 @@ npx wrangler d1 create soon
 npx wrangler r2 bucket create soon-videos
 ```
 
-Put the D1 ID returned by Wrangler in `apps/api/wrangler.jsonc`. Set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `R2_ACCOUNT_ID`, `R2_BUCKET_NAME`, and `CORS_ORIGINS` there. Replace the Vercel origin with the exact site origin (no trailing slash).
+Put the D1 ID returned by Wrangler in `apps/api/wrangler.jsonc`. Set `R2_ACCOUNT_ID`, `R2_BUCKET_NAME`, and `CORS_ORIGINS` there. Replace the Vercel origin with the exact site origin, without a trailing slash.
 
-Create an R2 S3 access key, then add the credentials as Worker secrets:
+Set credentials as Worker secrets, then apply the D1 migrations and R2 CORS policy:
 
 ```sh
+npx wrangler secret put AUTH_ACCOUNT
+npx wrangler secret put AUTH_PASSWORD
+npx wrangler secret put AUTH_SESSION_SECRET
 npx wrangler secret put R2_ACCESS_KEY_ID
 npx wrangler secret put R2_SECRET_ACCESS_KEY
 npx wrangler d1 migrations apply soon --remote
@@ -33,25 +38,23 @@ npx wrangler r2 bucket cors set soon-videos --file r2-cors.json
 npm run deploy
 ```
 
-The R2 key is used only by the Worker to sign temporary upload and playback URLs. The browser never receives the key. Update the origins in `r2-cors.json` before applying it; the multipart uploader reads each R2 part's `ETag`, so keep `ETag` in `exposeHeaders`. The API also checks the Vercel origin against `CORS_ORIGINS`.
+The R2 key is used only by the Worker to sign temporary upload and playback URLs. The browser never receives it. Update the origins in `r2-cors.json` before applying it; multipart uploads read each R2 part's `ETag`, so keep `ETag` in `exposeHeaders`. The API also checks the frontend origin against `CORS_ORIGINS`.
 
 ## Vercel frontend
 
-Create a Vercel project from the repository root. Use `npm run build` as the build command; Vercel detects Nuxt and selects its Nitro Vercel output. Set these environment variables for Preview and Production:
+Create a Vercel project from the repository root and use `npm run build`. Set these environment variables for Preview and Production:
 
 ```env
 NUXT_PUBLIC_API_BASE=https://YOUR_API_WORKER.workers.dev
-NUXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NUXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 NUXT_PUBLIC_RECORDING_MAX_DURATION_SECONDS=120
 ```
 
-Add the Vercel deployment domain and any custom domain to Supabase's allowed redirect URLs as `/auth/callback`, `CORS_ORIGINS`, and the R2 CORS origins.
+The frontend sends login credentials to the API Worker, which returns a signed 12-hour session token. The browser stores that bearer token locally; changing `AUTH_SESSION_SECRET` invalidates all existing sessions.
 
-## Existing account and video data
+## Existing video data
 
-Supabase Auth accounts stay in the existing Supabase project. The D1 schema and follow-up changes are in `apps/api/migrations/`; apply all migrations before deploying the API. Existing video rows and storage objects are not copied automatically: export the old `videos`, `reactions`, and `activity_logs` rows into the new schema, and copy each old media object into R2 before switching traffic if those recordings must remain available. Keep the old Supabase database and storage bucket until that one-time migration is verified.
+Migration `0003_configured_account_auth.sql` adds login throttling and leaves all existing owner IDs unchanged. The configured login is one principal; the D1 schema retains per-user ownership fields for future accounts. Existing private videos owned by earlier account IDs stay in D1/R2, but are not listed under this new principal until an explicit ownership mapping is made.
 
 ## Browser support
 
-The app builds for ES2020 and Safari 15. Screen recording requires a secure context and browser support for `getDisplayMedia`; camera and microphone access use `getUserMedia`. The recorder checks these APIs and `MediaRecorder.isTypeSupported`, chooses a supported WebM or MP4 format, and presents an explanation when the selected browser cannot capture. Speech subtitles use browser speech recognition when available and can be exported as SRT or VTT. Screen sharing, speech recognition, and system-audio availability vary by browser and operating system. Local video uploads support files up to 5 GB; files larger than 64 MiB upload to R2 in multipart chunks.
+The app builds for ES2020 and Safari 15. Screen recording requires a secure context and browser support for `getDisplayMedia`; camera and microphone access use `getUserMedia`. The recorder checks these APIs and `MediaRecorder.isTypeSupported`, chooses a supported WebM or MP4 format, and reports when the selected browser cannot capture. Speech subtitles use browser speech recognition when available. Screen sharing, speech recognition, and system-audio availability vary by browser and operating system. Local video uploads support files up to 5 GB; files larger than 64 MiB upload to R2 in multipart chunks.
