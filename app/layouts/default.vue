@@ -21,6 +21,7 @@ async function signOut() {
           <nav class="hidden items-center gap-4 sm:flex" aria-label="Main navigation">
             <NuxtLink to="/record" class="text-sm text-muted hover:text-highlighted">{{ t.nav.record }}</NuxtLink>
             <NuxtLink to="/discover" class="text-sm text-muted hover:text-highlighted">{{ t.nav.discover }}</NuxtLink>
+            <NuxtLink v-if="user?.role === 'admin'" to="/admin/accounts" class="text-sm text-muted hover:text-highlighted">{{ t.nav.adminAccounts }}</NuxtLink>
           </nav>
         </div>
         <div class="flex shrink-0 items-center gap-2">
@@ -42,6 +43,7 @@ async function signOut() {
       <nav class="flex gap-4 border-t border-default px-4 py-2 sm:hidden" aria-label="Mobile navigation">
         <NuxtLink to="/record" class="text-sm text-muted">{{ t.nav.record }}</NuxtLink>
         <NuxtLink to="/discover" class="text-sm text-muted">{{ t.nav.discover }}</NuxtLink>
+        <NuxtLink v-if="user?.role === 'admin'" to="/admin/accounts" class="text-sm text-muted">{{ t.nav.adminAccounts }}</NuxtLink>
       </nav>
     </header>
 

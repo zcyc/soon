@@ -40,6 +40,7 @@ export async function readObjectBody(event: H3Event): Promise<Record<string, unk
 export interface CurrentUser {
   id: string
   name: string
+  role: 'admin' | 'user'
 }
 
 export function getCurrentUser(event: H3Event): Promise<CurrentUser>
@@ -59,6 +60,12 @@ export async function getCurrentUser(event: H3Event, optional = false): Promise<
 
   const user = await verifyAccessToken(getEnv(event), token)
   if (!user && !optional) throw createError({ statusCode: 401, statusMessage: 'Your session has expired' })
+  return user
+}
+
+export async function requireAdmin(event: H3Event) {
+  const user = await getCurrentUser(event)
+  if (user.role !== 'admin') throw createError({ statusCode: 403, statusMessage: 'Administrator access is required' })
   return user
 }
 

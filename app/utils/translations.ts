@@ -13,6 +13,7 @@ export interface Translations {
     devices: string;
     profile: string;
     signOut: string;
+    adminAccounts: string;
   };
   home: {
     heroTitle: string;
@@ -73,6 +74,9 @@ export interface Translations {
     includeAudio: string;
     includeCamera: string;
     cameraIncluded: string;
+    cameraNotIncludedHint: string;
+    crossPageCameraHint: string;
+    pictureInPictureHint: string;
     videoTitle: string;
     videoTitlePlaceholder: string;
     uploadSuccess: string;
@@ -174,6 +178,37 @@ export interface Translations {
     password: string;
     signIn: string;
     authenticationFailed: string;
+    setupAdministrator: string;
+    setupDescription: string;
+    setupToken: string;
+    setupAlreadyComplete: string;
+    setupTokenIncorrect: string;
+    signUp: string;
+    signUpDescription: string;
+    confirmPassword: string;
+    passwordsDoNotMatch: string;
+    accountExists: string;
+    registrationDisabled: string;
+  };
+  accounts: {
+    title: string;
+    description: string;
+    registration: string;
+    registrationDescription: string;
+    allowRegistration: string;
+    createAccount: string;
+    createFailed: string;
+    role: string;
+    administrator: string;
+    user: string;
+    active: string;
+    disabled: string;
+    newPassword: string;
+    resetPassword: string;
+    loadFailed: string;
+    updateFailed: string;
+    saved: string;
+    created: string;
   };
   
   // Devices
@@ -388,6 +423,7 @@ export const translations: Record<Locale, Translations> = {
       devices: 'Devices', 
       profile: 'Profile',
       signOut: 'Sign Out',
+      adminAccounts: 'Accounts',
     },
     home: {
       heroTitle: 'Screen Recording',
@@ -442,6 +478,9 @@ export const translations: Record<Locale, Translations> = {
       includeAudio: 'Include Audio',
       includeCamera: 'Include Camera',
       cameraIncluded: 'Camera will be automatically included in recording',
+      cameraNotIncludedHint: 'Camera is not included by default. Enable “Include Camera” to add it to the recording.',
+      crossPageCameraHint: 'The browser may switch to the tab you select; this is expected. Return to the SOON recording tab and click “Open PiP” to keep the camera visible across pages. The camera is added to the final video when “Include Camera” is enabled.',
+      pictureInPictureHint: 'To keep the camera visible over other pages, click “Open PiP”. If you are viewing the selected page, switch back to the SOON recording tab first.',
     videoTitle: 'Video Title',
     videoTitlePlaceholder: 'Enter video title...',
     uploadSuccess: 'Upload successful!',
@@ -545,10 +584,41 @@ export const translations: Record<Locale, Translations> = {
     },
     auth: {
       account: 'Account',
-      signInDescription: 'Sign in with the account configured for this deployment.',
+      signInDescription: 'Sign in with your SOON account.',
       password: 'Password',
       signIn: 'Sign in',
-      authenticationFailed: 'Sign-in failed. Check the configured account and password, then try again.',
+      authenticationFailed: 'Authentication failed. Check your account and password, then try again.',
+      setupAdministrator: 'Set up administrator',
+      setupDescription: 'Create the first administrator account for this SOON installation.',
+      setupToken: 'One-time setup token',
+      setupAlreadyComplete: 'Administrator setup has already been completed.',
+      setupTokenIncorrect: 'The one-time setup token is incorrect.',
+      signUp: 'Create account',
+      signUpDescription: 'Create an account to record and manage your videos.',
+      confirmPassword: 'Confirm password',
+      passwordsDoNotMatch: 'Passwords do not match.',
+      accountExists: 'That account name is already in use.',
+      registrationDisabled: 'Public registration is currently disabled.',
+    },
+    accounts: {
+      title: 'Account management',
+      description: 'Create accounts, manage access and control public registration.',
+      registration: 'Public registration',
+      registrationDescription: 'Allow visitors to create their own accounts.',
+      allowRegistration: 'Allow registration',
+      createAccount: 'Create account',
+      createFailed: 'Unable to create the account. Check that the name is unused and the password is at least 12 characters.',
+      role: 'Role',
+      administrator: 'Administrator',
+      user: 'User',
+      active: 'Active',
+      disabled: 'Disabled',
+      newPassword: 'Set a new password',
+      resetPassword: 'Save password',
+      loadFailed: 'Unable to load accounts. Sign in as an administrator and try again.',
+      updateFailed: 'Unable to save this change. The last active administrator cannot be disabled or demoted.',
+      saved: 'Changes saved.',
+      created: 'Account created.',
     },
     devices: {
       title: 'Devices',
@@ -737,8 +807,9 @@ export const translations: Record<Locale, Translations> = {
       dashboard: '仪表盘',
       discover: '发现',
       devices: '设备',
-      profile: '个人资料', 
+      profile: '个人资料',
       signOut: '退出登录',
+      adminAccounts: '账号管理',
     },
     home: {
       heroTitle: '录制屏幕',
@@ -793,6 +864,9 @@ export const translations: Record<Locale, Translations> = {
       includeAudio: '录制音频',
       includeCamera: '同时录制摄像头',
       cameraIncluded: '摄像头将自动包含在录制中',
+      cameraNotIncludedHint: '摄像头默认不会录入视频。勾选“同时录制摄像头”后，摄像头画面才会加入录制。',
+      crossPageCameraHint: '选择其他页面后，浏览器可能会切换到所选标签页，这是正常行为。切回 SOON 录制页并点击“打开画中画”，即可跨页面显示摄像头；勾选“同时录制摄像头”后，摄像头画面会合成到最终视频。',
+      pictureInPictureHint: '要在其他页面上显示摄像头，请点击“打开画中画”；如果当前显示的是所选页面，请先切回 SOON 录制页。',
     videoTitle: '视频标题',
     videoTitlePlaceholder: '请输入视频标题...',
     uploadSuccess: '上传成功！',
@@ -896,10 +970,41 @@ export const translations: Record<Locale, Translations> = {
     },
     auth: {
       account: '账号',
-      signInDescription: '使用部署环境配置的账号登录。',
+      signInDescription: '使用 SOON 账号登录。',
       password: '密码',
       signIn: '登录',
-      authenticationFailed: '登录失败，请检查环境配置的账号和密码后重试。',
+      authenticationFailed: '登录失败，请检查账号和密码后重试。',
+      setupAdministrator: '初始化管理员',
+      setupDescription: '为此 SOON 系统创建首个管理员账号。',
+      setupToken: '一次性初始化令牌',
+      setupAlreadyComplete: '管理员账号已经初始化。',
+      setupTokenIncorrect: '一次性初始化令牌不正确。',
+      signUp: '注册账号',
+      signUpDescription: '创建账号以录制和管理视频。',
+      confirmPassword: '确认密码',
+      passwordsDoNotMatch: '两次输入的密码不一致。',
+      accountExists: '该账号名称已被使用。',
+      registrationDisabled: '系统当前未开放公开注册。',
+    },
+    accounts: {
+      title: '账号管理',
+      description: '创建账号、管理访问权限和控制公开注册。',
+      registration: '公开注册',
+      registrationDescription: '允许访客自行创建账号。',
+      allowRegistration: '允许注册',
+      createAccount: '创建账号',
+      createFailed: '创建失败，请确认账号未被使用且密码至少 12 位。',
+      role: '角色',
+      administrator: '管理员',
+      user: '普通用户',
+      active: '已启用',
+      disabled: '已停用',
+      newPassword: '设置新密码',
+      resetPassword: '保存密码',
+      loadFailed: '无法加载账号，请使用管理员账号登录后重试。',
+      updateFailed: '保存失败。不能停用或降级最后一个已启用的管理员。',
+      saved: '已保存。',
+      created: '账号已创建。',
     },
     devices: {
       title: '设备',

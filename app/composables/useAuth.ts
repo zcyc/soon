@@ -1,6 +1,7 @@
 export interface AuthUser {
   id: string
   name: string
+  role: 'admin' | 'user'
 }
 
 const TOKEN_KEY = 'soon-auth-token'
@@ -45,17 +46,25 @@ export function useAuth() {
     }
   }
 
-  async function signIn(account: string, password: string) {
-    const result = await $fetch<{ accessToken: string; user: AuthUser }>(`${getApiBaseURL()}/api/auth/login`, {
+  async function establishSession(endpoint: 'login' | 'setup' | 'register', account: string, password: string, extra: Record<string, string> = {}) {
+    const result = await $fetch<{ accessToken: string; user: AuthUser }>(`${getApiBaseURL()}/api/auth/${endpoint}`, {
       method: 'POST',
-      body: { account, password }
+      body: { account, password, ...extra }
     })
     accessToken.value = result.accessToken
     user.value = result.user
     if (import.meta.client) localStorage.setItem(TOKEN_KEY, result.accessToken)
   }
 
-  return { user, accessToken, signIn, signOut: clearSession, restoreSession }
+  return {
+    user,
+    accessToken,
+    signIn: (account: string, password: string) => establishSession('login', account, password),
+    setupAdministrator: (account: string, password: string, setupToken: string) => establishSession('setup', account, password, { setupToken }),
+    register: (account: string, password: string) => establishSession('register', account, password),
+    signOut: clearSession,
+    restoreSession
+  }
 }
 
 export function useCurrentUser() {

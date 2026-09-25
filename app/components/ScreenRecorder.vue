@@ -619,6 +619,12 @@ onBeforeUnmount(() => {
           <input v-model="includeCamera" type="checkbox" :disabled="recording || uploading || source === 'camera' || Boolean(resultBlob)">
           {{ t.recording.includeCamera }}
         </label>
+        <UAlert
+          v-if="source === 'screen'"
+          color="info"
+          variant="soft"
+          :title="includeCamera ? t.recording.crossPageCameraHint : t.recording.cameraNotIncludedHint"
+        />
         <label class="flex items-center gap-2 text-sm">
           <input v-model="subtitleEnabled" type="checkbox" :disabled="recording || uploading">
           {{ t.subtitles.enableSubtitles }}
@@ -659,6 +665,9 @@ onBeforeUnmount(() => {
         {{ pictureInPictureActive ? t.recording.closePictureInPicture : t.recording.openPictureInPicture }}
       </UButton>
     </div>
+    <p v-if="source === 'screen' && !pictureInPictureActive" class="px-2 pb-2 text-xs text-muted">
+      {{ t.recording.pictureInPictureHint }}
+    </p>
     <p v-if="cameraPreviewStream && pictureInPictureError" class="px-2 pb-2 text-xs text-error">{{ pictureInPictureError }}</p>
     <p v-else-if="cameraPreviewStream && !pictureInPictureSupported" class="px-2 pb-2 text-xs text-muted">{{ t.recording.pictureInPictureUnavailable }}</p>
   </div>
