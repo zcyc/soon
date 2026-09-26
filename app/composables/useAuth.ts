@@ -22,17 +22,21 @@ export function useAuth() {
   const user = useState<AuthUser | null>('current-user', () => null)
   const accessToken = useState<string | null>('auth-token', () => null)
 
-  function clearSession() {
+  function clearSession(persist = true) {
     user.value = null
     accessToken.value = null
-    if (import.meta.client) localStorage.removeItem(TOKEN_KEY)
+    if (persist && import.meta.client) localStorage.removeItem(TOKEN_KEY)
   }
 
   async function restoreSession() {
     if (!import.meta.client) return
     const token = localStorage.getItem(TOKEN_KEY)
-    if (!token) return
+    if (!token) {
+      clearSession(false)
+      return
+    }
 
+    if (accessToken.value !== token) user.value = null
     accessToken.value = token
     try {
       const restoredUser = await $fetch<AuthUser>(`${getApiBaseURL()}/api/auth/session`, {
