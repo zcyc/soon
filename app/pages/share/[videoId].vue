@@ -14,6 +14,7 @@ const reactions = ref<{ emoji: string; count: number; mine: boolean }[]>([])
 const loading = ref(true)
 const error = ref('')
 const downloadBusy = ref(false)
+const reactionBusy = ref(false)
 const initialShare = await useAsyncData(
   `share-${String(route.params.videoId)}`,
   async () => {
@@ -66,15 +67,23 @@ async function toggleReaction(emoji: string) {
     await navigateTo('/sign-in')
     return
   }
+  if (reactionBusy.value) return
+  const videoId = String(route.params.videoId)
+  const active = !Boolean(reactions.value.find(item => item.emoji === emoji)?.mine)
+  reactionBusy.value = true
   try {
-    await apiFetch(`videos/${encodeURIComponent(String(route.params.videoId))}/reactions`, {
+    await apiFetch(`videos/${encodeURIComponent(videoId)}/reactions`, {
       method: 'POST',
-      body: { emoji }
+      body: { emoji, active }
     })
-    const result = await apiFetch<{ reactions: typeof reactions.value }>(`videos/${encodeURIComponent(String(route.params.videoId))}/reactions`)
-    reactions.value = result.reactions
+    const result = await apiFetch<{ reactions: typeof reactions.value }>(`videos/${encodeURIComponent(videoId)}/reactions`)
+    if (String(route.params.videoId) === videoId) reactions.value = result.reactions
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : t.value.common.error
+    if (String(route.params.videoId) === videoId) {
+      error.value = cause instanceof Error ? cause.message : t.value.common.error
+    }
+  } finally {
+    reactionBusy.value = false
   }
 }
 
@@ -157,6 +166,7 @@ useSeoMeta({ title: () => video.value?.title || t.value.share.loading })
           variant="soft"
           :aria-label="reaction.label"
           :aria-pressed="Boolean(reactions.find(item => item.emoji === reaction.emoji)?.mine)"
+          :disabled="reactionBusy"
           @click="toggleReaction(reaction.emoji)"
         >
           {{ reaction.emoji }} {{ reactions.find(item => item.emoji === reaction.emoji)?.count || 0 }}
