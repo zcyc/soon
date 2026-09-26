@@ -49,6 +49,7 @@ const pictureInPictureActive = ref(false)
 const pictureInPictureError = ref('')
 const recording = ref(false)
 const starting = ref(false)
+const finishing = ref(false)
 const paused = ref(false)
 const uploading = ref(false)
 const includeMicrophone = ref(false)
@@ -269,7 +270,7 @@ async function getCaptureStream() {
 }
 
 async function startRecording() {
-  if (starting.value || recording.value || typeof window === 'undefined' || !navigator.mediaDevices) return
+  if (starting.value || recording.value || finishing.value || typeof window === 'undefined' || !navigator.mediaDevices) return
   starting.value = true
   error.value = ''
   status.value = ''
@@ -362,7 +363,10 @@ function stopRecording() {
   pausedAt = null
   totalPausedMs = 0
   stopSpeechRecognition()
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop()
+  if (mediaRecorder) {
+    finishing.value = true
+    if (mediaRecorder.state !== 'inactive') mediaRecorder.stop()
+  }
   stopTracks()
 }
 
@@ -392,6 +396,7 @@ function stopTracks() {
 
 function finishRecording() {
   if (disposed) return
+  finishing.value = false
   const mimeType = chunks.length && chunks[0] instanceof Blob ? (chunks[0] as Blob).type : 'video/webm'
   const blob = new Blob(chunks, { type: mediaRecorder?.mimeType || mimeType })
   mediaRecorder = null
@@ -608,7 +613,7 @@ onBeforeUnmount(() => {
         </section>
 
         <div class="flex flex-wrap gap-2">
-          <UButton v-if="!recording && !resultBlob" :loading="starting" :disabled="Boolean(supportMessage) || uploading || starting" @click="startRecording">
+          <UButton v-if="!recording && !resultBlob" :loading="starting || finishing" :disabled="Boolean(supportMessage) || uploading || starting || finishing" @click="startRecording">
             {{ t.recording.start }}
           </UButton>
           <UButton v-if="recording" color="neutral" variant="outline" @click="pauseRecording">
