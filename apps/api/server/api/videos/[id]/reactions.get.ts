@@ -1,7 +1,8 @@
-import { defineEventHandler, createError, getRouterParam } from 'h3'
+import { defineEventHandler, createError, getRouterParam, setHeader } from 'h3'
 import { getCurrentUser, getEnv, type VideoRow } from '../../../utils/cloudflare'
 
 export default defineEventHandler(async (event) => {
+  setHeader(event, 'Cache-Control', 'private, no-store')
   const { DB } = getEnv(event)
   const id = getRouterParam(event, 'id')
   const video = await DB.prepare('SELECT * FROM videos WHERE id = ?').bind(id || '').first<VideoRow>()
