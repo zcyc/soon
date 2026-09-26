@@ -35,7 +35,7 @@ function selectFile(event: Event) {
     error.value = t.value.fileUpload.fileSizeExceeded
     return
   }
-  if (!title.value) title.value = selected.name.replace(/\.[^.]+$/, '')
+  if (!title.value) title.value = selected.name.replace(/\.[^.]+$/, '').slice(0, 160)
   const mimeType = getVideoMimeType(selected)
   if (mimeType && document.createElement('video').canPlayType(mimeType) === '') {
     formatWarning.value = t.value.fileUpload.formatWarning
@@ -88,7 +88,7 @@ async function uploadSelectedFile() {
         >
       </UFormField>
       <UFormField :label="t.recording.videoTitle">
-        <UInput v-model="title" :placeholder="t.recording.videoTitlePlaceholder" :disabled="uploading" class="w-full" />
+        <UInput v-model="title" :placeholder="t.recording.videoTitlePlaceholder" :disabled="uploading" maxlength="160" class="w-full" />
       </UFormField>
       <p v-if="file" class="text-sm text-muted">{{ file.name }} · {{ (file.size / 1024 / 1024).toFixed(1) }} MB</p>
       <UAlert v-if="formatWarning" color="warning" variant="soft" :title="formatWarning" />

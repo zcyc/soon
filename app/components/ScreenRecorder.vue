@@ -640,7 +640,7 @@ onBeforeUnmount(() => {
           ]" class="w-full" :disabled="starting || recording || Boolean(resultBlob)" />
         </UFormField>
         <UFormField :label="t.recording.videoTitle">
-          <UInput v-model="title" :placeholder="t.recording.videoTitlePlaceholder" :disabled="recording || uploading" class="w-full" />
+          <UInput v-model="title" :placeholder="t.recording.videoTitlePlaceholder" :disabled="recording || uploading" maxlength="160" class="w-full" />
         </UFormField>
         <label class="flex items-center gap-2 text-sm">
           <input v-model="includeSystemAudio" type="checkbox" :disabled="starting || recording || uploading || source === 'camera'">
