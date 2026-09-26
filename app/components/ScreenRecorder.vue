@@ -84,6 +84,9 @@ let recognition: SpeechRecognitionLike | null = null
 let drawFrame = 0
 let previewPlayers: HTMLVideoElement[] = []
 let disposed = false
+let recordingStartedAt: number | null = null
+let pausedAt: number | null = null
+let totalPausedMs = 0
 
 const durationLabel = computed(() => formatDuration(seconds.value))
 const maxDuration = computed(() => {
@@ -169,6 +172,14 @@ function chooseMimeType() {
   ]
   const selected = options.find(value => MediaRecorder.isTypeSupported?.(value))
   return selected ? { mimeType: selected } : undefined
+}
+
+function updateRecordingTime() {
+  if (recordingStartedAt === null) return seconds.value
+  const now = performance.now()
+  const currentPause = pausedAt === null ? 0 : now - pausedAt
+  seconds.value = Math.floor(Math.max(0, now - recordingStartedAt - totalPausedMs - currentPause) / 1000)
+  return seconds.value
 }
 
 function resolution() {
@@ -296,17 +307,18 @@ async function startRecording() {
     recording.value = true
     paused.value = false
     seconds.value = 0
+    recordingStartedAt = performance.now()
+    pausedAt = null
+    totalPausedMs = 0
     status.value = t.value.recording.recordingStatus
+    timer = setInterval(() => {
+      if (updateRecordingTime() >= maxDuration.value) stopRecording()
+    }, 1000)
     await nextTick()
     if (preview.value && source.value === 'screen') {
       preview.value.srcObject = stream
       await preview.value.play().catch(() => undefined)
     }
-    timer = setInterval(() => {
-      if (paused.value) return
-      seconds.value += 1
-      if (seconds.value >= maxDuration.value) stopRecording()
-    }, 1000)
     if (subtitleEnabled.value) startSpeechRecognition()
   } catch (cause) {
     stopTracks()
@@ -327,19 +339,28 @@ function pauseRecording() {
   if (mediaRecorder.state === 'recording') {
     mediaRecorder.pause()
     paused.value = true
+    pausedAt = performance.now()
+    updateRecordingTime()
     stopSpeechRecognition()
   } else if (mediaRecorder.state === 'paused') {
     mediaRecorder.resume()
+    if (pausedAt !== null) totalPausedMs += performance.now() - pausedAt
+    pausedAt = null
     paused.value = false
+    updateRecordingTime()
     if (subtitleEnabled.value) startSpeechRecognition()
   }
 }
 
 function stopRecording() {
+  updateRecordingTime()
   if (timer) clearInterval(timer)
   timer = undefined
   recording.value = false
   paused.value = false
+  recordingStartedAt = null
+  pausedAt = null
+  totalPausedMs = 0
   stopSpeechRecognition()
   if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop()
   stopTracks()

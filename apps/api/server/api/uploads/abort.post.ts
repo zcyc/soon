@@ -19,6 +19,10 @@ export default defineEventHandler(async (event) => {
       UploadId: uploadId
     }))
   } else {
+    const referenced = await env.DB.prepare(
+      'SELECT 1 FROM videos WHERE user_id = ? AND (file_id = ? OR thumbnail_file_id = ?) LIMIT 1'
+    ).bind(user.id, fileId, fileId).first()
+    if (referenced) throw createError({ statusCode: 409, statusMessage: 'Storage object is already attached to a video' })
     await getR2Client(env).send(new DeleteObjectCommand({ Bucket: env.R2_BUCKET_NAME, Key: fileId }))
   }
   return { success: true }
