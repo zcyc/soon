@@ -1,5 +1,13 @@
 <script setup lang="ts">
+import { recordingConfig } from '~/utils/config'
+
 const { t } = useI18n()
+const runtime = useRuntimeConfig()
+const recordingLimitMinutes = computed(() => {
+  const configured = Number(runtime.public.recordingMaxDurationSeconds)
+  const seconds = Number.isFinite(configured) && configured > 0 ? configured : recordingConfig.maxDurationSeconds
+  return Math.ceil(seconds / 60)
+})
 const features = computed(() => [
   { title: t.value.home.screenRecordingTitle, description: t.value.home.screenRecordingDesc },
   { title: t.value.home.cameraRecordingTitle, description: t.value.home.cameraRecordingDesc },
@@ -22,7 +30,7 @@ const features = computed(() => [
           <UButton to="/record" size="lg">{{ t.home.getStarted }}</UButton>
           <UButton to="/discover" size="lg" color="neutral" variant="outline">{{ t.nav.discover }}</UButton>
         </div>
-        <p class="mt-6 text-sm text-muted">{{ t.home.timeLimitNotice() }}</p>
+        <p class="mt-6 text-sm text-muted">{{ t.home.timeLimitNotice(recordingLimitMinutes) }}</p>
       </div>
     </section>
 

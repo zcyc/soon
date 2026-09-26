@@ -23,7 +23,7 @@ export interface Translations {
     signIn: string;
     featuresTitle: string;
     featuresSubtitle: string;
-    timeLimitNotice: () => string;
+    timeLimitNotice: (minutes: number) => string;
     screenRecordingTitle: string;
     screenRecordingDesc: string;
     cameraRecordingTitle: string;
@@ -428,7 +428,7 @@ export const translations: Record<Locale, Translations> = {
       signIn: 'Sign In',
       featuresTitle: 'New Screen Recording Experience',
       featuresSubtitle: 'Simple and Fast, Open and Record',
-      timeLimitNotice: () => `🕒 Every recording is limited to ${Math.floor(recordingConfig.maxDurationSeconds / 60)} minutes`,
+      timeLimitNotice: minutes => `🕒 Every recording is limited to ${minutes} minutes`,
       screenRecordingTitle: 'No Installation Required',
       screenRecordingDesc: 'Record directly in your browser without downloading plugins or installing desktop clients.',
       cameraRecordingTitle: 'Chrome • Firefox • Safari',
@@ -809,7 +809,7 @@ export const translations: Record<Locale, Translations> = {
       signIn: '登录',
       featuresTitle: '录屏分享新体验',
       featuresSubtitle: '简单快速，打开就录',
-      timeLimitNotice: () => `🕒 每条录像的限制为 ${Math.floor(recordingConfig.maxDurationSeconds / 60)} 分钟`,
+      timeLimitNotice: minutes => `🕒 每条录像的限制为 ${minutes} 分钟`,
       screenRecordingTitle: '无需安装',
       screenRecordingDesc: '直接在浏览器中使用，无需下载插件或安装客户端应用程序。',
       cameraRecordingTitle: '支持 Chrome • Firefox • Safari',

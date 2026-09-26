@@ -46,6 +46,7 @@ export function useVideoUpload() {
     let fileId = ''
     let uploadId = ''
     let thumbnailFileId = ''
+    let metadataWriteAttempted = false
 
     try {
       if (options.blob.size > MULTIPART_THRESHOLD) {
@@ -120,6 +121,7 @@ export function useVideoUpload() {
         }
       }
 
+      metadataWriteAttempted = true
       const saved = await apiFetch<{ video: Video }>('videos', {
         method: 'POST',
         body: {
@@ -135,13 +137,18 @@ export function useVideoUpload() {
       options.onProgress?.(100)
       return saved.video
     } catch (error) {
-      if (fileId) {
+      const statusCode = error && typeof error === 'object' && 'statusCode' in error && typeof error.statusCode === 'number'
+        ? error.statusCode
+        : null
+      // ponytail: preserve objects after uncertain D1 outcomes to avoid broken rows; reconcile orphaned R2 keys if needed.
+      const metadataMayExist = metadataWriteAttempted && (statusCode === null || statusCode >= 500)
+      if (fileId && !metadataMayExist) {
         await apiFetch('uploads/abort', {
           method: 'POST',
           body: { fileId, ...(uploadId ? { uploadId } : {}) }
         }).catch(() => undefined)
       }
-      if (thumbnailFileId) {
+      if (thumbnailFileId && !metadataMayExist) {
         await apiFetch('uploads/abort', { method: 'POST', body: { fileId: thumbnailFileId } }).catch(() => undefined)
       }
       throw error

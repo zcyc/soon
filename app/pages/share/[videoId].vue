@@ -3,8 +3,9 @@ import type { Video } from '~/utils/video'
 
 const route = useRoute()
 const { t } = useI18n()
+const auth = useAuth()
 const { apiFetch } = useApi()
-const user = useCurrentUser()
+const user = auth.user
 const config = useRuntimeConfig()
 const apiBase = String(config.public.apiBase || (import.meta.dev ? 'http://localhost:8787' : '')).replace(/\/$/, '')
 const video = ref<Video | null>(null)
@@ -80,9 +81,12 @@ async function toggleReaction(emoji: string) {
 async function downloadVideo() {
   if (!video.value) return
   downloadBusy.value = true
+  error.value = ''
   try {
     const result = await apiFetch<{ url: string }>(`videos/${encodeURIComponent(video.value.id)}/url?download=1`)
     window.location.assign(result.url)
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : t.value.common.error
   } finally {
     downloadBusy.value = false
   }
@@ -99,11 +103,19 @@ async function shareVideo() {
       if (cause instanceof DOMException && cause.name === 'AbortError') return
     }
   }
-  if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url)
-  else window.prompt(t.value.recording.copyShareLink, url)
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url)
+      return
+    }
+  } catch {
+    // Clipboard access can be denied even when the browser exposes the API.
+  }
+  window.prompt(t.value.recording.copyShareLink, url)
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await auth.restoreSession()
   if (!video.value || user.value) {
     void loadVideo()
   } else {

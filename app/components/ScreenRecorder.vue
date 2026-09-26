@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { recordingConfig } from '~/utils/config'
+
 interface SubtitleSegment {
   start: number
   end: number
@@ -46,6 +48,7 @@ const pictureInPictureSupported = ref(false)
 const pictureInPictureActive = ref(false)
 const pictureInPictureError = ref('')
 const recording = ref(false)
+const starting = ref(false)
 const paused = ref(false)
 const uploading = ref(false)
 const includeMicrophone = ref(false)
@@ -83,7 +86,10 @@ let previewPlayers: HTMLVideoElement[] = []
 let disposed = false
 
 const durationLabel = computed(() => formatDuration(seconds.value))
-const maxDuration = computed(() => Number(runtime.public.recordingMaxDurationSeconds) || 120)
+const maxDuration = computed(() => {
+  const configured = Number(runtime.public.recordingMaxDurationSeconds)
+  return Number.isFinite(configured) && configured > 0 ? configured : recordingConfig.maxDurationSeconds
+})
 const supportMessage = computed(() => {
   if (!canRecordMedia.value) return t.value.devices.mediaRecorderUnsupported
   if (source.value === 'screen' && !canCaptureScreen.value) return t.value.devices.screenCaptureUnsupported
@@ -252,6 +258,8 @@ async function getCaptureStream() {
 }
 
 async function startRecording() {
+  if (starting.value || recording.value || typeof window === 'undefined' || !navigator.mediaDevices) return
+  starting.value = true
   error.value = ''
   status.value = ''
   captureWarnings.value = []
@@ -260,7 +268,6 @@ async function startRecording() {
   subtitleSegments.value = []
   subtitleText.value = ''
 
-  if (typeof window === 'undefined' || !navigator.mediaDevices) return
   try {
     // getDisplayMedia must stay in the direct user-gesture call chain.
     const { stream, cameraStream } = await getCaptureStream()
@@ -301,6 +308,8 @@ async function startRecording() {
   } catch (cause) {
     stopTracks()
     error.value = cause instanceof Error ? cause.message : t.value.permissions.screenDenied
+  } finally {
+    starting.value = false
   }
 }
 
@@ -573,7 +582,7 @@ onBeforeUnmount(() => {
         </section>
 
         <div class="flex flex-wrap gap-2">
-          <UButton v-if="!recording && !resultBlob" :disabled="Boolean(supportMessage) || uploading" @click="startRecording">
+          <UButton v-if="!recording && !resultBlob" :loading="starting" :disabled="Boolean(supportMessage) || uploading || starting" @click="startRecording">
             {{ t.recording.start }}
           </UButton>
           <UButton v-if="recording" color="neutral" variant="outline" @click="pauseRecording">
@@ -596,27 +605,27 @@ onBeforeUnmount(() => {
           <USelect v-model="source" :items="[
             { label: t.recording.screenSource, value: 'screen' },
             { label: t.recording.cameraOnly, value: 'camera' }
-          ]" class="w-full" :disabled="recording || Boolean(resultBlob)" />
+          ]" class="w-full" :disabled="starting || recording || Boolean(resultBlob)" />
         </UFormField>
         <UFormField :label="t.recording.recordingQuality">
           <USelect v-model="quality" :items="[
             { label: '720p (1280 × 720)', value: '720p' },
             { label: '1080p (1920 × 1080)', value: '1080p' }
-          ]" class="w-full" :disabled="recording || Boolean(resultBlob)" />
+          ]" class="w-full" :disabled="starting || recording || Boolean(resultBlob)" />
         </UFormField>
         <UFormField :label="t.recording.videoTitle">
-          <UInput v-model="title" :placeholder="t.recording.videoTitlePlaceholder" :disabled="recording" class="w-full" />
+          <UInput v-model="title" :placeholder="t.recording.videoTitlePlaceholder" :disabled="recording || uploading" class="w-full" />
         </UFormField>
         <label class="flex items-center gap-2 text-sm">
-          <input v-model="includeSystemAudio" type="checkbox" :disabled="recording || uploading || source === 'camera'">
+          <input v-model="includeSystemAudio" type="checkbox" :disabled="starting || recording || uploading || source === 'camera'">
           {{ t.recording.includeAudio }}
         </label>
         <label class="flex items-center gap-2 text-sm">
-          <input v-model="includeMicrophone" type="checkbox" :disabled="recording || uploading">
+          <input v-model="includeMicrophone" type="checkbox" :disabled="starting || recording || uploading">
           {{ t.recording.openMicrophone }}
         </label>
         <label class="flex items-center gap-2 text-sm">
-          <input v-model="includeCamera" type="checkbox" :disabled="recording || uploading || source === 'camera' || Boolean(resultBlob)">
+          <input v-model="includeCamera" type="checkbox" :disabled="starting || recording || uploading || source === 'camera' || Boolean(resultBlob)">
           {{ t.recording.includeCamera }}
         </label>
         <UAlert
@@ -626,7 +635,7 @@ onBeforeUnmount(() => {
           :title="includeCamera ? t.recording.crossPageCameraHint : t.recording.cameraNotIncludedHint"
         />
         <label class="flex items-center gap-2 text-sm">
-          <input v-model="subtitleEnabled" type="checkbox" :disabled="recording || uploading">
+          <input v-model="subtitleEnabled" type="checkbox" :disabled="starting || recording || uploading">
           {{ t.subtitles.enableSubtitles }}
         </label>
         <UFormField v-if="subtitleEnabled" :label="t.subtitles.subtitleLanguage">

@@ -1,8 +1,9 @@
-import { createError, defineEventHandler, getRequestHeader } from 'h3'
+import { createError, defineEventHandler, getRequestHeader, setHeader } from 'h3'
 import { assertAuthNotLocked, createAccessToken, getLoginClientKey, recordAuthAttempt, verifyPassword, type AuthUser } from '../../utils/auth'
 import { getEnv, readObjectBody } from '../../utils/cloudflare'
 
 export default defineEventHandler(async (event) => {
+  setHeader(event, 'Cache-Control', 'no-store')
   const env = getEnv(event)
   const body = await readObjectBody(event)
   const account = typeof body.account === 'string' ? body.account.trim() : ''
