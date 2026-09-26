@@ -42,6 +42,7 @@ export function useVideoUpload() {
 
   async function upload(options: UploadOptions): Promise<Video> {
     const contentType = getVideoMimeType({ name: options.fileName, type: options.blob.type }) || 'video/webm'
+    const defaultTitle = options.fileName.replace(/\.[^.]+$/, '').trim().slice(0, 160) || 'soon-recording'
     const preview = await inspectVideoBlob(options.blob)
     let fileId = ''
     let uploadId = ''
@@ -138,7 +139,7 @@ export function useVideoUpload() {
         body: {
           fileId,
           thumbnailFileId: thumbnailFileId || undefined,
-          title: options.title.trim() || options.fileName.replace(/\.[^.]+$/, ''),
+          title: options.title.trim().slice(0, 160) || defaultTitle,
           duration: options.duration ?? preview.duration,
           quality: options.quality,
           isPublic: options.isPublic,
