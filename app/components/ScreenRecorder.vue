@@ -272,6 +272,9 @@ async function startRecording() {
     // getDisplayMedia must stay in the direct user-gesture call chain.
     const { stream, cameraStream } = await getCaptureStream()
     await attachCameraPreview(cameraStream)
+    if (activeStreams.some(active => active.getVideoTracks().some(track => track.readyState !== 'live'))) {
+      throw new Error(t.value.recording.startFailed)
+    }
     activeStreams.forEach(active => active.getVideoTracks().forEach(track => {
       track.addEventListener('ended', stopRecording, { once: true })
     }))
@@ -489,6 +492,8 @@ function stopSpeechRecognition() {
   recognition = null
   subtitleListening.value = false
   if (current) {
+    current.onresult = null
+    current.onerror = null
     current.onend = null
     try { current.stop() } catch { /* Browser may already have stopped it. */ }
   }
