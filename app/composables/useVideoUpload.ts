@@ -61,33 +61,44 @@ export function useVideoUpload() {
         const parts: { partNumber: number; etag: string }[] = new Array(partCount)
         const completedBytes = new Array<number>(partCount).fill(0)
         let nextPart = 0
+        let partUploadFailed = false
         const updateProgress = () => {
           const sent = completedBytes.reduce((sum, value) => sum + value, 0)
           options.onProgress?.(Math.min(99, Math.floor(sent / options.blob.size * 100)))
         }
 
         const uploadNextPart = async () => {
-          while (nextPart < partCount) {
+          while (nextPart < partCount && !partUploadFailed) {
             const index = nextPart++
             const partNumber = index + 1
-            const signed = await apiFetch<{ url: string }>('uploads/multipart/part-url', {
-              method: 'POST',
-              body: { fileId, uploadId, partNumber }
-            })
-            const start = index * PART_SIZE
-            const blob = options.blob.slice(start, Math.min(options.blob.size, start + PART_SIZE))
-            const etag = await putBlob(signed.url, blob, '', (loaded) => {
-              completedBytes[index] = loaded
+            try {
+              const signed = await apiFetch<{ url: string }>('uploads/multipart/part-url', {
+                method: 'POST',
+                body: { fileId, uploadId, partNumber }
+              })
+              if (partUploadFailed) return
+              const start = index * PART_SIZE
+              const blob = options.blob.slice(start, Math.min(options.blob.size, start + PART_SIZE))
+              const etag = await putBlob(signed.url, blob, '', (loaded) => {
+                completedBytes[index] = loaded
+                updateProgress()
+              })
+              if (!etag) throw new Error('Storage did not return an upload part tag')
+              completedBytes[index] = blob.size
+              parts[index] = { partNumber, etag }
               updateProgress()
-            })
-            if (!etag) throw new Error('Storage did not return an upload part tag')
-            completedBytes[index] = blob.size
-            parts[index] = { partNumber, etag }
-            updateProgress()
+            } catch (cause) {
+              partUploadFailed = true
+              throw cause
+            }
           }
         }
 
-        await Promise.all(Array.from({ length: Math.min(PART_CONCURRENCY, partCount) }, uploadNextPart))
+        const partResults = await Promise.allSettled(
+          Array.from({ length: Math.min(PART_CONCURRENCY, partCount) }, uploadNextPart)
+        )
+        const failedPart = partResults.find(result => result.status === 'rejected')
+        if (failedPart?.status === 'rejected') throw failedPart.reason
         await apiFetch('uploads/multipart/complete', {
           method: 'POST',
           body: { fileId, uploadId, parts }
