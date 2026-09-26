@@ -26,7 +26,8 @@ export default defineEventHandler(async (event) => {
   const uploadUrl = await getSignedUrl(getR2Client(env), new PutObjectCommand({
     Bucket: env.R2_BUCKET_NAME,
     Key: fileId,
-    ContentType: contentType
+    ContentType: contentType,
+    ContentLength: size
   }), { expiresIn: 900 })
   return { fileId, uploadUrl }
 })
