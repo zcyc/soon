@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
       (SELECT value FROM system_settings WHERE key = 'allow_registration') AS allow_registration
     FROM users
   `).first<{ user_count: number; allow_registration: string | null }>()
-  if (!availability || availability.user_count === 0) throw createError({ statusCode: 409, statusMessage: 'Initial administrator setup is required' })
+  if (!availability || availability.user_count === 0) throw createError({ statusCode: 409, statusMessage: 'No administrator exists. Run `npm run admin:create -- --remote` from apps/api; use --local for local development.' })
   if (availability.allow_registration !== 'true') throw createError({ statusCode: 403, statusMessage: 'Registration is disabled' })
   const now = Math.floor(Date.now() / 1000)
   const clientKey = await getLoginClientKey(env, `register:${getRequestHeader(event, 'cf-connecting-ip') || 'unknown'}`)
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
         (SELECT value FROM system_settings WHERE key = 'allow_registration') AS allow_registration
       FROM users
     `).first<{ user_count: number; allow_registration: string | null }>()
-    if (!status || status.user_count === 0) throw createError({ statusCode: 409, statusMessage: 'Initial administrator setup is required' })
+    if (!status || status.user_count === 0) throw createError({ statusCode: 409, statusMessage: 'No administrator exists. Run `npm run admin:create -- --remote` from apps/api; use --local for local development.' })
     if (status.allow_registration !== 'true') throw createError({ statusCode: 403, statusMessage: 'Registration is disabled' })
     throw createError({ statusCode: 409, statusMessage: 'Account already exists' })
   }

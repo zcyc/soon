@@ -46,10 +46,10 @@ export function useAuth() {
     }
   }
 
-  async function establishSession(endpoint: 'login' | 'setup' | 'register', account: string, password: string, extra: Record<string, string> = {}) {
+  async function establishSession(endpoint: 'login' | 'register', account: string, password: string) {
     const result = await $fetch<{ accessToken: string; user: AuthUser }>(`${getApiBaseURL()}/api/auth/${endpoint}`, {
       method: 'POST',
-      body: { account, password, ...extra }
+      body: { account, password }
     })
     accessToken.value = result.accessToken
     user.value = result.user
@@ -60,7 +60,6 @@ export function useAuth() {
     user,
     accessToken,
     signIn: (account: string, password: string) => establishSession('login', account, password),
-    setupAdministrator: (account: string, password: string, setupToken: string) => establishSession('setup', account, password, { setupToken }),
     register: (account: string, password: string) => establishSession('register', account, password),
     signOut: clearSession,
     restoreSession

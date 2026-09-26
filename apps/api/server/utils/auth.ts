@@ -1,7 +1,8 @@
 import { createError } from 'h3'
+import { verifyPassword } from '../../shared/password-hash.mjs'
+export { hashPassword, verifyPassword } from '../../shared/password-hash.mjs'
 
 const TOKEN_LIFETIME_SECONDS = 12 * 60 * 60
-const PASSWORD_HASH_ITERATIONS = 600_000
 const MAX_AUTH_ATTEMPTS = 5
 const AUTH_WINDOW_SECONDS = 15 * 60
 const encoder = new TextEncoder()
@@ -39,48 +40,6 @@ function fromBase64Url(value: string) {
 
 async function importSigningKey(secret: string) {
   return await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify'])
-}
-
-export async function verifySetupToken(env: Cloudflare.Env, token: string) {
-  const expectedToken = env.AUTH_SETUP_TOKEN || ''
-  if (encoder.encode(expectedToken).length < 32) {
-    throw createError({ statusCode: 500, statusMessage: 'AUTH_SETUP_TOKEN must contain at least 32 bytes' })
-  }
-  if (encoder.encode(token).length > 1024) return false
-  const [expected, actual] = await Promise.all([
-    crypto.subtle.digest('SHA-256', encoder.encode(expectedToken)),
-    crypto.subtle.digest('SHA-256', encoder.encode(token))
-  ])
-  const expectedBytes = new Uint8Array(expected)
-  const actualBytes = new Uint8Array(actual)
-  let difference = 0
-  for (let index = 0; index < expectedBytes.length; index += 1) difference |= expectedBytes[index]! ^ actualBytes[index]!
-  return difference === 0
-}
-
-async function derivePasswordHash(password: string, salt: Uint8Array, iterations: number) {
-  const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits'])
-  const saltBuffer = new ArrayBuffer(salt.byteLength)
-  new Uint8Array(saltBuffer).set(salt)
-  return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: saltBuffer, iterations }, key, 256))
-}
-
-export async function hashPassword(password: string) {
-  const salt = crypto.getRandomValues(new Uint8Array(16))
-  const hash = await derivePasswordHash(password, salt, PASSWORD_HASH_ITERATIONS)
-  return `pbkdf2-sha256$${PASSWORD_HASH_ITERATIONS}$${toBase64Url(salt)}$${toBase64Url(hash)}`
-}
-
-export async function verifyPassword(password: string, encodedHash: string | null | undefined) {
-  const parts = encodedHash?.split('$')
-  const validFormat = parts?.length === 4 && parts[0] === 'pbkdf2-sha256' && parts[1] === String(PASSWORD_HASH_ITERATIONS)
-  const salt = validFormat ? fromBase64Url(parts?.[2] || '') : null
-  const expected = validFormat ? fromBase64Url(parts?.[3] || '') : null
-  const actual = await derivePasswordHash(password, salt?.length === 16 ? salt : new Uint8Array(16), PASSWORD_HASH_ITERATIONS)
-  if (!validFormat || !salt || salt.length !== 16 || !expected || expected.length !== actual.length) return false
-  let difference = 0
-  for (let index = 0; index < actual.length; index += 1) difference |= actual[index]! ^ expected[index]!
-  return difference === 0
 }
 
 export async function createAccessToken(env: Cloudflare.Env, user: AuthUser) {

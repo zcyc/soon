@@ -178,11 +178,6 @@ export interface Translations {
     password: string;
     signIn: string;
     authenticationFailed: string;
-    setupAdministrator: string;
-    setupDescription: string;
-    setupToken: string;
-    setupAlreadyComplete: string;
-    setupTokenIncorrect: string;
     signUp: string;
     signUpDescription: string;
     confirmPassword: string;
@@ -588,11 +583,6 @@ export const translations: Record<Locale, Translations> = {
       password: 'Password',
       signIn: 'Sign in',
       authenticationFailed: 'Authentication failed. Check your account and password, then try again.',
-      setupAdministrator: 'Set up administrator',
-      setupDescription: 'Create the first administrator account for this SOON installation.',
-      setupToken: 'One-time setup token',
-      setupAlreadyComplete: 'Administrator setup has already been completed.',
-      setupTokenIncorrect: 'The one-time setup token is incorrect.',
       signUp: 'Create account',
       signUpDescription: 'Create an account to record and manage your videos.',
       confirmPassword: 'Confirm password',
@@ -974,11 +964,6 @@ export const translations: Record<Locale, Translations> = {
       password: '密码',
       signIn: '登录',
       authenticationFailed: '登录失败，请检查账号和密码后重试。',
-      setupAdministrator: '初始化管理员',
-      setupDescription: '为此 SOON 系统创建首个管理员账号。',
-      setupToken: '一次性初始化令牌',
-      setupAlreadyComplete: '管理员账号已经初始化。',
-      setupTokenIncorrect: '一次性初始化令牌不正确。',
       signUp: '注册账号',
       signUpDescription: '创建账号以录制和管理视频。',
       confirmPassword: '确认密码',

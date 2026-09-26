@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{ mode: 'signin' | 'setup' | 'signup' }>()
+const props = defineProps<{ mode: 'signin' | 'signup' }>()
 const { t } = useI18n()
 const auth = useAuth()
 const busy = ref(false)
@@ -7,10 +7,10 @@ const error = ref('')
 
 const title = computed(() => props.mode === 'signin'
   ? t.value.auth.signIn
-  : props.mode === 'setup' ? t.value.auth.setupAdministrator : t.value.auth.signUp)
+  : t.value.auth.signUp)
 const description = computed(() => props.mode === 'signin'
   ? t.value.auth.signInDescription
-  : props.mode === 'setup' ? t.value.auth.setupDescription : t.value.auth.signUpDescription)
+  : t.value.auth.signUpDescription)
 
 function getStatusCode(cause: unknown) {
   return cause && typeof cause === 'object' && 'statusCode' in cause && typeof cause.statusCode === 'number'
@@ -25,7 +25,6 @@ async function submit(event: Event) {
   const form = new FormData(event.target as HTMLFormElement)
   const account = String(form.get('account') || '').trim()
   const password = String(form.get('password') || '')
-  const setupToken = String(form.get('setupToken') || '')
   const passwordConfirmation = String(form.get('passwordConfirmation') || '')
   if (props.mode !== 'signin' && password !== passwordConfirmation) {
     error.value = t.value.auth.passwordsDoNotMatch
@@ -34,15 +33,13 @@ async function submit(event: Event) {
   }
 
   try {
-    if (props.mode === 'setup') await auth.setupAdministrator(account, password, setupToken)
-    else if (props.mode === 'signup') await auth.register(account, password)
+    if (props.mode === 'signup') await auth.register(account, password)
     else await auth.signIn(account, password)
     await navigateTo(auth.user.value?.role === 'admin' ? '/admin/accounts' : '/record')
   } catch (cause) {
     const statusCode = getStatusCode(cause)
     error.value = statusCode === 409
-      ? props.mode === 'setup' ? t.value.auth.setupAlreadyComplete : t.value.auth.accountExists
-      : statusCode === 401 && props.mode === 'setup' ? t.value.auth.setupTokenIncorrect
+      ? t.value.auth.accountExists
       : statusCode === 403 ? t.value.auth.registrationDisabled : t.value.auth.authenticationFailed
   } finally {
     busy.value = false
@@ -61,9 +58,6 @@ async function submit(event: Event) {
         <UFormField :label="t.auth.account" name="account" required>
           <UInput name="account" autocomplete="username" required maxlength="128" class="w-full" />
         </UFormField>
-        <UFormField v-if="mode === 'setup'" :label="t.auth.setupToken" name="setupToken" required>
-          <UInput name="setupToken" type="password" autocomplete="off" required maxlength="1024" class="w-full" />
-        </UFormField>
         <UFormField :label="t.auth.password" name="password" required>
           <UInput
             name="password"
@@ -80,7 +74,7 @@ async function submit(event: Event) {
         </UFormField>
         <UAlert v-if="error" color="error" variant="soft" :title="error" />
         <UButton type="submit" block :loading="busy">
-          {{ mode === 'signin' ? t.auth.signIn : mode === 'setup' ? t.auth.setupAdministrator : t.auth.signUp }}
+          {{ mode === 'signin' ? t.auth.signIn : t.auth.signUp }}
         </UButton>
         <NuxtLink v-if="mode !== 'signin'" to="/sign-in" class="block text-center text-sm text-primary underline">
           {{ t.auth.signIn }}

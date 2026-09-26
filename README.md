@@ -1,16 +1,16 @@
 # SOON
 
-SOON is a browser screen recorder. The Nuxt 4 + Nuxt UI frontend is deployed to Vercel. A Nitro API Worker on Cloudflare uses D1 for video metadata and account credentials, and R2 for video files. The first visit creates the administrator account; public registration is disabled by default and can be managed from `/admin/accounts`.
+SOON is a browser screen recorder. The Nuxt 4 + Nuxt UI frontend is deployed to Vercel. A Nitro API Worker on Cloudflare uses D1 for video metadata and account credentials, and R2 for video files. Create the first administrator through Wrangler; public registration is disabled by default and can be managed from `/admin/accounts`.
 
 ## Local development
 
-1. Install Node.js 20.19 or newer and run `npm install`.
+1. Install Node.js 22 or newer and run `npm install`.
 2. Copy `.env.example` to `.env`; `NUXT_PUBLIC_API_BASE` defaults to the local API.
-3. Create the D1 database and R2 bucket below. Copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars` and configure the session secret, one-time setup token, and R2 credentials.
-4. Apply the local D1 schema with `npm run db:migrate:local`.
+3. Create the D1 database and R2 bucket below. Copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars` and configure the session secret and R2 credentials.
+4. Apply the local D1 schema with `npm run db:migrate:local`, then create its first administrator with `npm --prefix apps/api run admin:create -- --local`.
 5. Run `npm run dev:api` and `npm run dev` in separate terminals. Nuxt listens on port 3000 and Nitro on port 8787.
 
-Use random `AUTH_SESSION_SECRET` and `AUTH_SETUP_TOKEN` values of at least 32 bytes. The setup token is only for the first administrator and can be removed immediately after setup. Account passwords must be at least 12 characters; the API stores salted PBKDF2 hashes in D1, never plaintext passwords. Keep these values in `apps/api/.dev.vars` locally and as Cloudflare Worker secrets in deployment. Never put them in Nuxt `NUXT_PUBLIC_*` variables.
+Use a random `AUTH_SESSION_SECRET` of at least 32 bytes. Account passwords must be at least 12 characters; the API stores salted PBKDF2 hashes in D1, never plaintext passwords. Keep the session secret in `apps/api/.dev.vars` locally and as a Cloudflare Worker secret in deployment. Never put it in Nuxt `NUXT_PUBLIC_*` variables.
 
 Screen capture requires HTTPS except on localhost.
 
@@ -29,15 +29,15 @@ Set the session and R2 credentials as Worker secrets, then apply the D1 migratio
 
 ```sh
 npx wrangler secret put AUTH_SESSION_SECRET
-npx wrangler secret put AUTH_SETUP_TOKEN
 npx wrangler secret put R2_ACCESS_KEY_ID
 npx wrangler secret put R2_SECRET_ACCESS_KEY
 npx wrangler d1 migrations apply soon --remote
+npm run admin:create -- --remote
 npx wrangler r2 bucket cors set soon-videos --file r2-cors.json
 npm run deploy
 ```
 
-Remove the old fixed-login secrets from existing deployments (`npx wrangler secret delete AUTH_ACCOUNT` and `npx wrangler secret delete AUTH_PASSWORD`) after deploying this version. Generate a random `AUTH_SETUP_TOKEN`, set it as a Worker secret, and enter it at `/setup` with the first administrator account and password. Then delete `AUTH_SETUP_TOKEN`; setup is permanently closed after the first account is saved. Sign-in and registration are available at `/sign-in` and `/sign-up`; public registration starts disabled and administrators can change it from `/admin/accounts`.
+The `admin:create` command securely prompts for the first account and password without echoing the password, hashes it locally, and writes the account to D1 through Wrangler. It only creates an account when the `users` table is empty; use `/admin/accounts` for later account management. Remove the old fixed-login secrets from existing deployments (`npx wrangler secret delete AUTH_ACCOUNT` and `npx wrangler secret delete AUTH_PASSWORD`) after deploying this version. Sign-in and registration are available at `/sign-in` and `/sign-up`; public registration starts disabled and administrators can change it from `/admin/accounts`.
 
 The R2 key is used only by the Worker to sign temporary upload and playback URLs. The browser never receives it. Update the origins in `r2-cors.json` before applying it; multipart uploads read each R2 part's `ETag`, so keep `ETag` in `exposeHeaders`. The API also checks the frontend origin against `CORS_ORIGINS`.
 

@@ -1,7 +1,5 @@
 # Set once for API session signing. Accounts and password hashes are stored in D1.
 AUTH_SESSION_SECRET=
-# Random one-time bootstrap token. Remove after creating the first administrator.
-AUTH_SETUP_TOKEN=
 R2_ACCOUNT_ID=YOUR_CLOUDFLARE_ACCOUNT_ID
 R2_BUCKET_NAME=soon-videos
 R2_ACCESS_KEY_ID=YOUR_R2_ACCESS_KEY_ID
