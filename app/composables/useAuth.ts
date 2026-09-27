@@ -25,12 +25,24 @@ export function useAuth() {
   function clearSession(persist = true) {
     user.value = null
     accessToken.value = null
-    if (persist && import.meta.client) localStorage.removeItem(TOKEN_KEY)
+    if (persist && import.meta.client) {
+      try {
+        localStorage.removeItem(TOKEN_KEY)
+      } catch {
+        console.warn('Unable to remove the saved SOON session from browser storage.')
+      }
+    }
   }
 
   async function restoreSession() {
     if (!import.meta.client) return
-    const token = localStorage.getItem(TOKEN_KEY)
+    let token: string | null
+    try {
+      token = localStorage.getItem(TOKEN_KEY)
+    } catch {
+      console.warn('Browser storage is unavailable; the SOON session can only be used in this tab.')
+      return
+    }
     if (!token) {
       clearSession(false)
       return
@@ -57,7 +69,13 @@ export function useAuth() {
     })
     accessToken.value = result.accessToken
     user.value = result.user
-    if (import.meta.client) localStorage.setItem(TOKEN_KEY, result.accessToken)
+    if (import.meta.client) {
+      try {
+        localStorage.setItem(TOKEN_KEY, result.accessToken)
+      } catch {
+        console.warn('Unable to persist the SOON session; it will be lost when this tab closes.')
+      }
+    }
   }
 
   return {

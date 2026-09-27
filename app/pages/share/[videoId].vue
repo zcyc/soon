@@ -15,6 +15,8 @@ const loading = ref(true)
 const error = ref('')
 const downloadBusy = ref(false)
 const reactionBusy = ref(false)
+let loadGeneration = 0
+let viewedVideoId = ''
 const initialShare = await useAsyncData(
   `share-${String(route.params.videoId)}`,
   async () => {
@@ -42,24 +44,35 @@ if (initialShare.data.value) {
 }
 
 async function loadVideo() {
+  const generation = ++loadGeneration
+  const videoId = String(route.params.videoId)
+  const id = encodeURIComponent(videoId)
   loading.value = true
   error.value = ''
   try {
-    const id = encodeURIComponent(String(route.params.videoId))
     const [videoResponse, mediaResponse, reactionResponse] = await Promise.all([
       apiFetch<{ video: Video }>(`videos/${id}`),
       apiFetch<{ url: string }>(`videos/${id}/url`),
       apiFetch<{ reactions: typeof reactions.value }>(`videos/${id}/reactions`)
     ])
+    if (generation !== loadGeneration || String(route.params.videoId) !== videoId) return
     video.value = videoResponse.video
     mediaUrl.value = mediaResponse.url
     reactions.value = reactionResponse.reactions
-    await apiFetch(`videos/${id}/views`, { method: 'POST' }).catch(() => undefined)
+    recordVideoView(videoId)
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : t.value.share.videoNotFoundDesc
+    if (generation === loadGeneration && String(route.params.videoId) === videoId) {
+      error.value = cause instanceof Error ? cause.message : t.value.share.videoNotFoundDesc
+    }
   } finally {
-    loading.value = false
+    if (generation === loadGeneration) loading.value = false
   }
+}
+
+function recordVideoView(videoId: string) {
+  if (viewedVideoId === videoId) return
+  viewedVideoId = videoId
+  void apiFetch(`videos/${encodeURIComponent(videoId)}/views`, { method: 'POST' }).catch(() => undefined)
 }
 
 async function toggleReaction(emoji: string) {
@@ -128,7 +141,7 @@ onMounted(async () => {
   if (!video.value || user.value) {
     void loadVideo()
   } else {
-    void apiFetch(`videos/${encodeURIComponent(String(route.params.videoId))}/views`, { method: 'POST' }).catch(() => undefined)
+    recordVideoView(String(route.params.videoId))
   }
 })
 watch(() => route.params.videoId, (next, previous) => {
